@@ -1,4 +1,4 @@
-import { getDB } from '../../app/lib/db.server'
+import { getDB, hasDB } from '../../app/lib/db.server'
 import type { Customer, Bottle, Cast, VisitRecord, Reservation } from '@/types'
 import {
   mockCustomers,
@@ -9,7 +9,8 @@ import {
 } from './mock-data'
 
 // In-memory fallback for local dev without DATABASE_URL
-const useDB = !!process.env.DATABASE_URL
+// hasDB() を呼び出し時評価にすることで Cloudflare Workers の起動順序問題を回避
+const useDB = hasDB
 
 const store = {
   customers: new Map<string, Customer>(mockCustomers.map((c) => [c.id, c])),
@@ -93,7 +94,7 @@ function toVisitRecord(r: any): VisitRecord {
 // ─── Customer CRUD ────────────────────────────────────────────────────────────
 
 export async function getCustomers(): Promise<Customer[]> {
-  if (!useDB) {
+  if (!useDB()) {
     return Array.from(store.customers.values()).sort((a, b) =>
       a.ruby.localeCompare(b.ruby, 'ja')
     )
@@ -104,7 +105,7 @@ export async function getCustomers(): Promise<Customer[]> {
 }
 
 export async function getCustomer(id: string): Promise<Customer | null> {
-  if (!useDB) return store.customers.get(id) ?? null
+  if (!useDB()) return store.customers.get(id) ?? null
   const sql = getDB()
   const rows = await sql`SELECT * FROM customers WHERE id = ${id}`
   return rows[0] ? toCustomer(rows[0]) : null
@@ -115,7 +116,7 @@ export async function createCustomer(
 ): Promise<Customer> {
   const id = generateId()
   const updatedAt = new Date().toISOString()
-  if (!useDB) {
+  if (!useDB()) {
     const customer: Customer = { ...data, id, updatedAt }
     store.customers.set(id, customer)
     return customer
@@ -133,7 +134,7 @@ export async function updateCustomer(
   id: string,
   data: Partial<Omit<Customer, 'id'>>
 ): Promise<Customer | null> {
-  if (!useDB) {
+  if (!useDB()) {
     const existing = store.customers.get(id)
     if (!existing) return null
     const updated: Customer = { ...existing, ...data, id, updatedAt: new Date().toISOString() }
@@ -158,7 +159,7 @@ export async function updateCustomer(
 }
 
 export async function deleteCustomer(id: string): Promise<boolean> {
-  if (!useDB) return store.customers.delete(id)
+  if (!useDB()) return store.customers.delete(id)
   const sql = getDB()
   await sql`DELETE FROM customers WHERE id = ${id}`
   return true
@@ -167,21 +168,21 @@ export async function deleteCustomer(id: string): Promise<boolean> {
 // ─── Bottle CRUD ──────────────────────────────────────────────────────────────
 
 export async function getBottles(): Promise<Bottle[]> {
-  if (!useDB) return Array.from(store.bottles.values())
+  if (!useDB()) return Array.from(store.bottles.values())
   const sql = getDB()
   const rows = await sql`SELECT * FROM bottles`
   return rows.map(toBottle)
 }
 
 export async function getBottlesByCustomer(customerId: string): Promise<Bottle[]> {
-  if (!useDB) return Array.from(store.bottles.values()).filter((b) => b.customerId === customerId)
+  if (!useDB()) return Array.from(store.bottles.values()).filter((b) => b.customerId === customerId)
   const sql = getDB()
   const rows = await sql`SELECT * FROM bottles WHERE customer_id = ${customerId}`
   return rows.map(toBottle)
 }
 
 export async function getBottle(id: string): Promise<Bottle | null> {
-  if (!useDB) return store.bottles.get(id) ?? null
+  if (!useDB()) return store.bottles.get(id) ?? null
   const sql = getDB()
   const rows = await sql`SELECT * FROM bottles WHERE id = ${id}`
   return rows[0] ? toBottle(rows[0]) : null
@@ -189,7 +190,7 @@ export async function getBottle(id: string): Promise<Bottle | null> {
 
 export async function createBottle(data: Omit<Bottle, 'id'>): Promise<Bottle> {
   const id = generateId()
-  if (!useDB) {
+  if (!useDB()) {
     const bottle: Bottle = { ...data, id }
     store.bottles.set(id, bottle)
     return bottle
@@ -207,7 +208,7 @@ export async function updateBottle(
   id: string,
   data: Partial<Omit<Bottle, 'id'>>
 ): Promise<Bottle | null> {
-  if (!useDB) {
+  if (!useDB()) {
     const existing = store.bottles.get(id)
     if (!existing) return null
     const updated: Bottle = { ...existing, ...data, id }
@@ -226,7 +227,7 @@ export async function updateBottle(
 }
 
 export async function deleteBottle(id: string): Promise<boolean> {
-  if (!useDB) return store.bottles.delete(id)
+  if (!useDB()) return store.bottles.delete(id)
   const sql = getDB()
   await sql`DELETE FROM bottles WHERE id = ${id}`
   return true
@@ -235,7 +236,7 @@ export async function deleteBottle(id: string): Promise<boolean> {
 // ─── Cast CRUD ────────────────────────────────────────────────────────────────
 
 export async function getCasts(): Promise<Cast[]> {
-  if (!useDB) {
+  if (!useDB()) {
     return Array.from(store.casts.values()).sort((a, b) =>
       a.ruby.localeCompare(b.ruby, 'ja')
     )
@@ -246,7 +247,7 @@ export async function getCasts(): Promise<Cast[]> {
 }
 
 export async function getCast(id: string): Promise<Cast | null> {
-  if (!useDB) return store.casts.get(id) ?? null
+  if (!useDB()) return store.casts.get(id) ?? null
   const sql = getDB()
   const rows = await sql`SELECT * FROM casts WHERE id = ${id}`
   return rows[0] ? toCast(rows[0]) : null
@@ -255,7 +256,7 @@ export async function getCast(id: string): Promise<Cast | null> {
 export async function createCast(data: Omit<Cast, 'id' | 'updatedAt'>): Promise<Cast> {
   const id = generateId()
   const updatedAt = new Date().toISOString()
-  if (!useDB) {
+  if (!useDB()) {
     const cast: Cast = { ...data, id, updatedAt }
     store.casts.set(id, cast)
     return cast
@@ -273,7 +274,7 @@ export async function updateCast(
   id: string,
   data: Partial<Omit<Cast, 'id' | 'updatedAt'>>
 ): Promise<Cast | null> {
-  if (!useDB) {
+  if (!useDB()) {
     const existing = store.casts.get(id)
     if (!existing) return null
     const updated: Cast = { ...existing, ...data, id, updatedAt: new Date().toISOString() }
@@ -293,7 +294,7 @@ export async function updateCast(
 }
 
 export async function deleteCast(id: string): Promise<boolean> {
-  if (!useDB) return store.casts.delete(id)
+  if (!useDB()) return store.casts.delete(id)
   const sql = getDB()
   await sql`DELETE FROM casts WHERE id = ${id}`
   return true
@@ -302,7 +303,7 @@ export async function deleteCast(id: string): Promise<boolean> {
 // ─── VisitRecord CRUD ─────────────────────────────────────────────────────────
 
 export async function getVisitRecords(): Promise<VisitRecord[]> {
-  if (!useDB) {
+  if (!useDB()) {
     return Array.from(store.visitRecords.values()).sort(
       (a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime()
     )
@@ -313,7 +314,7 @@ export async function getVisitRecords(): Promise<VisitRecord[]> {
 }
 
 export async function getVisitRecordsByCustomer(customerId: string): Promise<VisitRecord[]> {
-  if (!useDB) {
+  if (!useDB()) {
     return Array.from(store.visitRecords.values())
       .filter((v) => v.customerId === customerId)
       .sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime())
@@ -324,7 +325,7 @@ export async function getVisitRecordsByCustomer(customerId: string): Promise<Vis
 }
 
 export async function getVisitRecordsByCast(castId: string): Promise<VisitRecord[]> {
-  if (!useDB) {
+  if (!useDB()) {
     return Array.from(store.visitRecords.values())
       .filter((v) => v.designatedCastIds.includes(castId))
       .sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime())
@@ -335,7 +336,7 @@ export async function getVisitRecordsByCast(castId: string): Promise<VisitRecord
 }
 
 export async function getVisitRecordsByInStoreCast(castId: string): Promise<VisitRecord[]> {
-  if (!useDB) {
+  if (!useDB()) {
     return Array.from(store.visitRecords.values())
       .filter((v) => v.inStoreCastIds.includes(castId))
       .sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime())
@@ -347,7 +348,7 @@ export async function getVisitRecordsByInStoreCast(castId: string): Promise<Visi
 
 export async function createVisitRecord(data: Omit<VisitRecord, 'id'>): Promise<VisitRecord> {
   const id = generateId()
-  if (!useDB) {
+  if (!useDB()) {
     const record: VisitRecord = { ...data, id }
     store.visitRecords.set(id, record)
     const customer = store.customers.get(data.customerId)
@@ -376,7 +377,7 @@ export async function createVisitRecord(data: Omit<VisitRecord, 'id'>): Promise<
 }
 
 export async function getVisitRecord(id: string): Promise<VisitRecord | null> {
-  if (!useDB) return store.visitRecords.get(id) ?? null
+  if (!useDB()) return store.visitRecords.get(id) ?? null
   const sql = getDB()
   const rows = await sql`SELECT * FROM visit_records WHERE id = ${id}`
   return rows[0] ? toVisitRecord(rows[0]) : null
@@ -386,7 +387,7 @@ export async function updateVisitRecord(
   id: string,
   data: Partial<Omit<VisitRecord, 'id'>>
 ): Promise<VisitRecord | null> {
-  if (!useDB) {
+  if (!useDB()) {
     const existing = store.visitRecords.get(id)
     if (!existing) return null
     const updated: VisitRecord = { ...existing, ...data, id }
@@ -408,7 +409,7 @@ export async function updateVisitRecord(
 }
 
 export async function deleteVisitRecord(id: string): Promise<boolean> {
-  if (!useDB) return store.visitRecords.delete(id)
+  if (!useDB()) return store.visitRecords.delete(id)
   const sql = getDB()
   await sql`DELETE FROM visit_records WHERE id = ${id}`
   return true
@@ -448,7 +449,7 @@ function toReservation(r: any): Reservation {
 }
 
 export async function getReservations(): Promise<Reservation[]> {
-  if (!useDB) {
+  if (!useDB()) {
     return Array.from(store.reservations.values()).sort((a, b) =>
       `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`)
     )
@@ -459,7 +460,7 @@ export async function getReservations(): Promise<Reservation[]> {
 }
 
 export async function getReservation(id: string): Promise<Reservation | null> {
-  if (!useDB) return store.reservations.get(id) ?? null
+  if (!useDB()) return store.reservations.get(id) ?? null
   const sql = getDB()
   const rows = await sql`SELECT * FROM reservations WHERE id = ${id}`
   return rows[0] ? toReservation(rows[0]) : null
@@ -468,7 +469,7 @@ export async function getReservation(id: string): Promise<Reservation | null> {
 export async function createReservation(data: Omit<Reservation, 'id' | 'updatedAt'>): Promise<Reservation> {
   const id = generateId()
   const updatedAt = new Date().toISOString()
-  if (!useDB) {
+  if (!useDB()) {
     const reservation: Reservation = { ...data, id, updatedAt }
     store.reservations.set(id, reservation)
     return reservation
@@ -483,7 +484,7 @@ export async function createReservation(data: Omit<Reservation, 'id' | 'updatedA
 }
 
 export async function updateReservation(id: string, data: Partial<Omit<Reservation, 'id'>>): Promise<Reservation | null> {
-  if (!useDB) {
+  if (!useDB()) {
     const existing = store.reservations.get(id)
     if (!existing) return null
     const updated: Reservation = { ...existing, ...data, id, updatedAt: new Date().toISOString() }
@@ -509,7 +510,7 @@ export async function updateReservation(id: string, data: Partial<Omit<Reservati
 }
 
 export async function getReservationsByCustomer(customerId: string): Promise<Reservation[]> {
-  if (!useDB) {
+  if (!useDB()) {
     return Array.from(store.reservations.values())
       .filter((r) => r.customerIds.includes(customerId))
       .sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))
@@ -520,7 +521,7 @@ export async function getReservationsByCustomer(customerId: string): Promise<Res
 }
 
 export async function getReservationsByCast(castId: string): Promise<Reservation[]> {
-  if (!useDB) {
+  if (!useDB()) {
     return Array.from(store.reservations.values())
       .filter((r) => r.designatedCastIds.includes(castId) || r.accompaniedCastIds.includes(castId))
       .sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))
@@ -531,7 +532,7 @@ export async function getReservationsByCast(castId: string): Promise<Reservation
 }
 
 export async function deleteReservation(id: string): Promise<boolean> {
-  if (!useDB) return store.reservations.delete(id)
+  if (!useDB()) return store.reservations.delete(id)
   const sql = getDB()
   await sql`DELETE FROM reservations WHERE id = ${id}`
   return true

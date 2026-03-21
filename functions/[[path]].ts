@@ -5,12 +5,11 @@ import * as build from '../build/server'
 export const onRequest = createPagesFunctionHandler({
   build,
   getLoadContext: (context) => {
-    // Cloudflare Pages は bindings を context.env で渡す。
-    // nodejs_compat でも process.env に自動マップされないケースがあるため
-    // 明示的に転送してサーバーコードが process.env.DATABASE_URL を読めるようにする。
     const env = context.env as Record<string, string | undefined>
-    if (env.DATABASE_URL && !process.env.DATABASE_URL) {
-      process.env.DATABASE_URL = env.DATABASE_URL
+    // Cloudflare Pages では Secrets は context.env 経由でのみ渡される。
+    // process.env は Workers では読み取り専用のため globalThis 経由で共有する。
+    if (env.DATABASE_URL) {
+      ;(globalThis as Record<string, unknown>).__DATABASE_URL = env.DATABASE_URL
     }
     return { cloudflare: env }
   },
