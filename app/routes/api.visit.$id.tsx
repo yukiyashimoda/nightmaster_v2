@@ -1,0 +1,21 @@
+import type { Route } from '../+types/routes/api.visit.$id'
+import { updateVisitRecord, deleteVisitRecord } from '../../src/lib/kv.server'
+import { VALID_PASS } from '../../src/lib/auth.server'
+
+export async function action({ request, params }: Route.ActionArgs) {
+  const { id } = params
+  const body = await request.json()
+
+  if (body._intent === 'delete') {
+    if (body.password !== VALID_PASS) {
+      return Response.json({ success: false, error: 'パスワードが違います' })
+    }
+    await deleteVisitRecord(id)
+    return Response.json({ success: true })
+  }
+
+  // update
+  const result = await updateVisitRecord(id, body)
+  if (!result) return Response.json({ success: false, error: '来店記録が見つかりません' })
+  return Response.json({ success: true })
+}

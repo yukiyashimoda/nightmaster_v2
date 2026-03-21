@@ -1,14 +1,11 @@
-'use client'
-
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useFetcher, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Search, X, Plus } from 'lucide-react'
 import { GiBrandyBottle } from 'react-icons/gi'
-import { createCustomerAction } from './actions'
 import type { Cast, Customer } from '@/types'
 
 interface NewCustomerFormProps {
@@ -116,7 +113,8 @@ function CastMultiSelect({
 }
 
 export function NewCustomerForm({ casts, customers, initialName = '', initialFirstVisitDate = '' }: NewCustomerFormProps) {
-  const router = useRouter()
+  const fetcher = useFetcher()
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [name, setName] = useState(initialName)
@@ -131,6 +129,15 @@ export function NewCustomerForm({ casts, customers, initialName = '', initialFir
   const [linkedQuery, setLinkedQuery] = useState('')
   const [bottles, setBottles] = useState<BottleInput[]>([])
   const [firstVisitDate, setFirstVisitDate] = useState(initialFirstVisitDate)
+
+  useEffect(() => {
+    if (fetcher.state === 'idle' && fetcher.data?.success && fetcher.data?.id) {
+      navigate(`/customers/${fetcher.data.id}`)
+    } else if (fetcher.state === 'idle' && fetcher.data?.error) {
+      setError(fetcher.data.error)
+      setLoading(false)
+    }
+  }, [fetcher.state, fetcher.data])
 
   const filteredCustomers = linkedQuery.trim()
     ? customers.filter((c) => c.name.includes(linkedQuery) || c.ruby.includes(linkedQuery) || c.nickname.includes(linkedQuery))
@@ -161,42 +168,35 @@ export function NewCustomerForm({ casts, customers, initialName = '', initialFir
     setLoading(true)
     setError('')
     const form = e.currentTarget
-    const data = new FormData(form)
-
-    const result = await createCustomerAction(
+    const formData = new FormData(form)
+    fetcher.submit(
       {
-        name,
-        ruby: data.get('ruby') as string,
-        nickname: data.get('nickname') as string,
-        phone: data.get('phone') as string,
-        email: data.get('email') as string,
-        designatedCastIds,
-        isAlert,
-        alertReason: isAlert ? alertReason : '',
-        memo: data.get('memo') as string,
-        linkedCustomerIds: linkedIds,
-        isFavorite: false,
-        hasGlass,
-        glassMemo: hasGlass ? glassMemo : '',
-        receiptNames: receiptNames.filter((n) => n.trim()),
-        lastVisitDate: firstVisitDate ? new Date(firstVisitDate).toISOString() : null,
-      },
-      bottles
-        .filter((b) => b.name.trim())
-        .map((b) => ({
+        data: {
+          name,
+          ruby: formData.get('ruby') as string,
+          nickname: formData.get('nickname') as string,
+          phone: formData.get('phone') as string,
+          email: formData.get('email') as string,
+          designatedCastIds,
+          isAlert,
+          alertReason: isAlert ? alertReason : '',
+          memo: formData.get('memo') as string,
+          linkedCustomerIds: linkedIds,
+          isFavorite: false,
+          hasGlass,
+          glassMemo: hasGlass ? glassMemo : '',
+          receiptNames: receiptNames.filter((n) => n.trim()),
+          lastVisitDate: firstVisitDate ? new Date(firstVisitDate).toISOString() : null,
+        },
+        bottles: bottles.filter((b) => b.name.trim()).map((b) => ({
           name: b.name,
           remaining: `${b.remaining}%`,
           openedDate: new Date(b.openedDate).toISOString(),
         })),
-      inStoreCastIds
+        inStoreCastIds,
+      },
+      { method: 'post', encType: 'application/json' }
     )
-
-    setLoading(false)
-    if (result.success && result.id) {
-      router.push(`/customers/${result.id}`)
-    } else {
-      setError(result.error ?? '登録に失敗しました')
-    }
   }
 
   return (

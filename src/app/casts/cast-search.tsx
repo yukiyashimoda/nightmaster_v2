@@ -1,7 +1,5 @@
-'use client'
-
 import { useState } from 'react'
-import Link from 'next/link'
+import { Link } from 'react-router'
 import { Search, X } from 'lucide-react'
 import { GiAmpleDress } from 'react-icons/gi'
 import { Input } from '@/components/ui/input'
@@ -51,7 +49,7 @@ export function CastSearch({ casts, visitCounts }: CastSearchProps) {
             filtered.map((cast) => (
               <Link
                 key={cast.id}
-                href={`/casts/${cast.id}`}
+                to={`/casts/${cast.id}`}
                 className="flex items-center gap-3 px-4 py-3 border-b border-brand-beige last:border-b-0 hover:bg-white transition-colors"
               >
                 <div className="w-10 h-10 rounded-full bg-brand-plum text-white flex items-center justify-center text-[10px] font-bold shrink-0 overflow-hidden">

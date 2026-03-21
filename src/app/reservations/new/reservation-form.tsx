@@ -1,13 +1,10 @@
-'use client'
-
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useFetcher, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Search, X, Check } from 'lucide-react'
-import { createReservationAction } from './actions'
 import type { Customer, Cast } from '@/types'
 
 interface ReservationFormProps {
@@ -98,7 +95,8 @@ function CastMultiPicker({
 }
 
 export function ReservationForm({ customers, casts, bottlesByCustomer }: ReservationFormProps) {
-  const router = useRouter()
+  const fetcher = useFetcher()
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showRegisterPrompt, setShowRegisterPrompt] = useState(false)
@@ -121,6 +119,21 @@ export function ReservationForm({ customers, casts, bottlesByCustomer }: Reserva
   const [partyPlanMinutes, setPartyPlanMinutes] = useState<string>('90')
   const [phone, setPhone] = useState('')
   const [memo, setMemo] = useState('')
+
+  useEffect(() => {
+    if (fetcher.state === 'idle' && fetcher.data?.success) {
+      if (customerType === 'new') {
+        setSavedDate(date)
+        setShowRegisterPrompt(true)
+      } else {
+        navigate('/reservations')
+      }
+      setLoading(false)
+    } else if (fetcher.state === 'idle' && fetcher.data?.error) {
+      setError(fetcher.data.error)
+      setLoading(false)
+    }
+  }, [fetcher.state, fetcher.data])
 
   const filteredCustomers = customerQuery.trim()
     ? customers.filter(
@@ -170,35 +183,27 @@ export function ReservationForm({ customers, casts, bottlesByCustomer }: Reserva
     }
     setLoading(true)
     setError('')
-    const result = await createReservationAction({
-      date,
-      time,
-      partySize,
-      hasDesignation,
-      designatedCastIds: hasDesignation ? designatedCastIds : [],
-      isAccompanied,
-      accompaniedCastIds: isAccompanied ? accompaniedCastIds : [],
-      customerType,
-      customerIds: customerType === 'existing' ? selectedCustomerIds : [],
-      guestName: customerType === 'new' ? guestName : '',
-      phone,
-      isVisited: false,
-      priceType,
-      partyPlanPrice: priceType === 'party' && partyPlanPrice ? Number(partyPlanPrice) : null,
-      partyPlanMinutes: priceType === 'party' && partyPlanMinutes ? Number(partyPlanMinutes) : null,
-      memo,
-    })
-    setLoading(false)
-    if (result.success) {
-      if (customerType === 'new') {
-        setSavedDate(date)
-        setShowRegisterPrompt(true)
-      } else {
-        router.push('/reservations')
-      }
-    } else {
-      setError(result.error ?? '登録に失敗しました')
-    }
+    fetcher.submit(
+      {
+        date,
+        time,
+        partySize,
+        hasDesignation,
+        designatedCastIds: hasDesignation ? designatedCastIds : [],
+        isAccompanied,
+        accompaniedCastIds: isAccompanied ? accompaniedCastIds : [],
+        customerType,
+        customerIds: customerType === 'existing' ? selectedCustomerIds : [],
+        guestName: customerType === 'new' ? guestName : '',
+        phone,
+        isVisited: false,
+        priceType,
+        partyPlanPrice: priceType === 'party' && partyPlanPrice ? Number(partyPlanPrice) : null,
+        partyPlanMinutes: priceType === 'party' && partyPlanMinutes ? Number(partyPlanMinutes) : null,
+        memo,
+      },
+      { method: 'post', encType: 'application/json' }
+    )
   }
 
   return (
@@ -213,7 +218,7 @@ export function ReservationForm({ customers, casts, bottlesByCustomer }: Reserva
           <div className="flex gap-2 pt-1">
             <button
               type="button"
-              onClick={() => router.push('/reservations')}
+              onClick={() => navigate('/reservations')}
               className="flex-1 py-2.5 rounded-lg border border-brand-beige text-sm font-medium text-brand-plum/70 hover:bg-brand-beige/50 transition-colors"
             >
               スキップ
@@ -224,7 +229,7 @@ export function ReservationForm({ customers, casts, bottlesByCustomer }: Reserva
                 const params = new URLSearchParams()
                 if (guestName) params.set('name', guestName)
                 if (savedDate) params.set('date', savedDate)
-                router.push(`/customers/new?${params.toString()}`)
+                navigate(`/customers/new?${params.toString()}`)
               }}
               className="flex-1 py-2.5 rounded-lg bg-brand-plum text-white text-sm font-bold hover:bg-brand-plum/90 transition-colors"
             >

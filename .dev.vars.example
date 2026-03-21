@@ -1,0 +1,12 @@
+# ローカル開発用シークレットのサンプル
+# このファイルをコピーして .dev.vars にリネームし、実際の値を入力してください
+# .dev.vars は .gitignore 済みです — 絶対にコミットしないこと
+#
+# 使い方:
+#   cp .dev.vars.example .dev.vars
+#   # .dev.vars を編集して実際の DATABASE_URL を設定
+#   npm run dev  (= wrangler pages dev)
+
+# Neon PostgreSQL 接続文字列
+# Neon Dashboard > Connection Details > Connection string (pooled) からコピー
+DATABASE_URL=postgresql://<user>:<password>@<host>.neon.tech/<dbname>?sslmode=require

@@ -1,7 +1,5 @@
-'use client'
-
 import { useState, useMemo } from 'react'
-import Link from 'next/link'
+import { Link } from 'react-router'
 import { GiAmpleDress } from 'react-icons/gi'
 import type { Cast, VisitRecord } from '@/types'
 
@@ -146,7 +144,7 @@ export function CastRanking({ casts, visits }: CastRankingProps) {
           ranking.map(({ cast, count }, i) => (
             <Link
               key={cast!.id}
-              href={`/casts/${cast!.id}`}
+              to={`/casts/${cast!.id}`}
               className="flex items-center gap-3 px-4 py-3 hover:bg-brand-beige/30 transition-colors"
             >
               {/* 順位バッジ */}

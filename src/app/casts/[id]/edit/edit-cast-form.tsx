@@ -1,18 +1,25 @@
-'use client'
-
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useFetcher, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { updateCastAction } from './actions'
 import type { Cast } from '@/types'
 
 export function EditCastForm({ cast }: { cast: Cast }) {
-  const router = useRouter()
+  const fetcher = useFetcher()
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (fetcher.state === 'idle' && fetcher.data?.success) {
+      navigate(`/casts/${cast.id}`)
+    } else if (fetcher.state === 'idle' && fetcher.data?.error) {
+      setError(fetcher.data.error)
+      setLoading(false)
+    }
+  }, [fetcher.state, fetcher.data])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -20,17 +27,14 @@ export function EditCastForm({ cast }: { cast: Cast }) {
     setError('')
     const form = e.currentTarget
     const data = new FormData(form)
-    const result = await updateCastAction(cast.id, {
-      name: data.get('name') as string,
-      ruby: data.get('ruby') as string,
-      memo: data.get('memo') as string,
-    })
-    setLoading(false)
-    if (result.success) {
-      router.push(`/casts/${cast.id}`)
-    } else {
-      setError(result.error ?? '更新に失敗しました')
-    }
+    fetcher.submit(
+      {
+        name: data.get('name') as string,
+        ruby: data.get('ruby') as string,
+        memo: data.get('memo') as string,
+      },
+      { method: 'post', encType: 'application/json' }
+    )
   }
 
   return (

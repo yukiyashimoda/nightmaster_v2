@@ -1,14 +1,11 @@
-'use client'
-
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useFetcher, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Search, X, Plus, AlertTriangle } from 'lucide-react'
 import { GiBrandyBottle } from 'react-icons/gi'
-import { createVisitAction } from './actions'
 import type { Cast, Bottle, Customer } from '@/types'
 
 interface NewVisitFormProps {
@@ -137,7 +134,8 @@ export function NewVisitForm({
   allCustomers,
   defaultLinkedCustomerIds,
 }: NewVisitFormProps) {
-  const router = useRouter()
+  const fetcher = useFetcher()
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [designatedCastIds, setDesignatedCastIds] = useState<string[]>(defaultDesignatedCastIds)
@@ -155,6 +153,15 @@ export function NewVisitForm({
       isNew: false,
     }))
   )
+
+  useEffect(() => {
+    if (fetcher.state === 'idle' && fetcher.data?.success) {
+      navigate(`/customers/${customerId}`)
+    } else if (fetcher.state === 'idle' && fetcher.data?.error) {
+      setError(fetcher.data.error)
+      setLoading(false)
+    }
+  }, [fetcher.state, fetcher.data])
 
   const addBottle = () => {
     setBottles((prev) => [
@@ -179,33 +186,29 @@ export function NewVisitForm({
     const formData = new FormData(form)
     const visitDate = new Date(formData.get('visitDate') as string).toISOString()
 
-    const result = await createVisitAction({
-      customerId,
-      visitDate,
-      designatedCastIds,
-      inStoreCastIds,
-      bottleUpdates: bottles
-        .filter((b) => !b.isNew)
-        .map((b) => ({ id: b.id, remaining: `${b.remaining}%` })),
-      newBottles: bottles
-        .filter((b) => b.isNew && b.name.trim())
-        .map((b) => ({
-          name: b.name,
-          remaining: `${b.remaining}%`,
-          openedDate: visitDate,
-        })),
-      memo: formData.get('memo') as string,
-      linkedCustomerIds,
-      isAlert,
-      alertReason: isAlert ? alertReason : '',
-    })
-
-    setLoading(false)
-    if (result.success) {
-      router.push(`/customers/${customerId}`)
-    } else {
-      setError(result.error ?? '登録に失敗しました')
-    }
+    fetcher.submit(
+      {
+        customerId,
+        visitDate,
+        designatedCastIds,
+        inStoreCastIds,
+        bottleUpdates: bottles
+          .filter((b) => !b.isNew)
+          .map((b) => ({ id: b.id, remaining: `${b.remaining}%` })),
+        newBottles: bottles
+          .filter((b) => b.isNew && b.name.trim())
+          .map((b) => ({
+            name: b.name,
+            remaining: `${b.remaining}%`,
+            openedDate: visitDate,
+          })),
+        memo: formData.get('memo') as string,
+        linkedCustomerIds,
+        isAlert,
+        alertReason: isAlert ? alertReason : '',
+      },
+      { method: 'post', encType: 'application/json' }
+    )
   }
 
   return (

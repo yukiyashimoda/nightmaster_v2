@@ -1,12 +1,9 @@
-'use client'
-
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useFetcher, useRevalidator } from 'react-router'
 import { Calendar, User, AlertTriangle, X, Edit, Trash2, ChevronRight } from 'lucide-react'
 import { GiBrandyBottle } from 'react-icons/gi'
 import { formatDate } from '@/lib/utils'
 import type { VisitRecord, Cast, Bottle } from '@/types'
-import { updateVisitAction, deleteVisitAction } from '@/lib/visit-actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -23,10 +20,11 @@ interface VisitCardProps {
 type ModalMode = 'view' | 'edit' | 'delete'
 
 export function VisitCard({ visit, casts, bottles, loggedIn }: VisitCardProps) {
-  const router = useRouter()
+  const updateFetcher = useFetcher()
+  const deleteFetcher = useFetcher()
+  const { revalidate } = useRevalidator()
   const [isOpen, setIsOpen] = useState(false)
   const [mode, setMode] = useState<ModalMode>('view')
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [password, setPassword] = useState('')
 
@@ -55,6 +53,27 @@ export function VisitCard({ visit, casts, bottles, loggedIn }: VisitCardProps) {
   const isAlert = visit.isAlert ?? false
   const whiteStyle = isAlert ? { color: 'white' } : {}
 
+  const loading = updateFetcher.state !== 'idle' || deleteFetcher.state !== 'idle'
+
+  useEffect(() => {
+    if (updateFetcher.state === 'idle' && updateFetcher.data?.success) {
+      closeModal()
+      revalidate()
+    } else if (updateFetcher.state === 'idle' && updateFetcher.data?.error) {
+      setError(updateFetcher.data.error)
+    }
+  }, [updateFetcher.state, updateFetcher.data])
+
+  useEffect(() => {
+    if (deleteFetcher.state === 'idle' && deleteFetcher.data?.success) {
+      closeModal()
+      revalidate()
+    } else if (deleteFetcher.state === 'idle' && deleteFetcher.data?.error) {
+      setError(deleteFetcher.data.error)
+      setPassword('')
+    }
+  }, [deleteFetcher.state, deleteFetcher.data])
+
   function openModal() {
     setMode('view')
     setError('')
@@ -69,36 +88,24 @@ export function VisitCard({ visit, casts, bottles, loggedIn }: VisitCardProps) {
 
   async function handleEdit(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
-    setError('')
-    const result = await updateVisitAction(visit.id, {
-      visitDate: new Date(editDate).toISOString(),
-      memo: editMemo,
-      isAlert: editIsAlert,
-      alertReason: editIsAlert ? editAlertReason : '',
-      designatedCastIds: editDesignatedCastIds,
-      inStoreCastIds: editInStoreCastIds,
-    })
-    setLoading(false)
-    if (result.success) {
-      closeModal()
-      router.refresh()
-    } else {
-      setError(result.error ?? '更新に失敗しました')
-    }
+    updateFetcher.submit(
+      {
+        visitDate: new Date(editDate).toISOString(),
+        memo: editMemo,
+        isAlert: editIsAlert,
+        alertReason: editIsAlert ? editAlertReason : '',
+        designatedCastIds: editDesignatedCastIds,
+        inStoreCastIds: editInStoreCastIds,
+      },
+      { method: 'post', action: `/api/visit/${visit.id}`, encType: 'application/json' }
+    )
   }
 
   async function handleDelete() {
-    setLoading(true)
-    setError('')
-    const result = await deleteVisitAction(visit.id, password)
-    setLoading(false)
-    if (result.success) {
-      closeModal()
-      router.refresh()
-    } else {
-      setError(result.error ?? '削除に失敗しました')
-    }
+    deleteFetcher.submit(
+      { _intent: 'delete', password },
+      { method: 'post', action: `/api/visit/${visit.id}`, encType: 'application/json' }
+    )
   }
 
   function toggleCast(id: string, type: 'designated' | 'inStore') {

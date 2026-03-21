@@ -1,7 +1,5 @@
-'use client'
-
 import { useState } from 'react'
-import Link from 'next/link'
+import { Link } from 'react-router'
 import { User, ChevronDown, ChevronUp } from 'lucide-react'
 import { VisitCard } from '@/components/visit-card'
 import type { VisitRecord, Cast, Bottle, Customer } from '@/types'
@@ -26,7 +24,7 @@ export function CastVisitGroup({ customer, visits, casts, bottles, loggedIn }: C
   return (
     <div className="space-y-2">
       <Link
-        href={`/customers/${customer.id}`}
+        to={`/customers/${customer.id}`}
         className="flex items-center gap-2 text-sm text-brand-plum hover:text-brand-plum font-medium"
       >
         <User className="h-3.5 w-3.5 text-brand-plum/50" />

@@ -1,0 +1,12 @@
+{
+  // Cloudflare Pages project configuration
+  "name": "nightmaster-v2",
+  "compatibility_date": "2025-01-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "pages_build_output_dir": "./build/client",
+
+  // Environment variables (add secrets via `wrangler pages secret put`)
+  "vars": {
+    // "DATABASE_URL": "your-neon-db-url"
+  }
+}

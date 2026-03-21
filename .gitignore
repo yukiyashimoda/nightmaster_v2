@@ -4,8 +4,7 @@ node_modules/
 .pnp.js
 
 # production
-/.next/
-/out/
+/build/
 
 # env files
 .env
@@ -24,3 +23,6 @@ yarn-error.log*
 # vercel
 .vercel
 .env*.local
+
+# wrangler local secrets (never commit)
+.dev.vars

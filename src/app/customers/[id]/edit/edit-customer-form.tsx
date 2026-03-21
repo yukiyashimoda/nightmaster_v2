@@ -1,14 +1,11 @@
-'use client'
-
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useFetcher, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Search, X, Plus } from 'lucide-react'
 import { GiBrandyBottle } from 'react-icons/gi'
-import { updateCustomerAction } from './actions'
 import type { Cast, Customer, Bottle } from '@/types'
 
 interface EditCustomerFormProps {
@@ -129,7 +126,8 @@ export function EditCustomerForm({
   otherCustomers,
   existingBottles,
 }: EditCustomerFormProps) {
-  const router = useRouter()
+  const fetcher = useFetcher()
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [phone, setPhone] = useState(customer.phone ?? '')
@@ -154,6 +152,15 @@ export function EditCustomerForm({
       deleted: false,
     }))
   )
+
+  useEffect(() => {
+    if (fetcher.state === 'idle' && fetcher.data?.success) {
+      navigate(`/customers/${customer.id}`)
+    } else if (fetcher.state === 'idle' && fetcher.data?.error) {
+      setError(fetcher.data.error)
+      setLoading(false)
+    }
+  }, [fetcher.state, fetcher.data])
 
   const filteredCustomers = linkedQuery.trim()
     ? otherCustomers.filter(
@@ -196,44 +203,39 @@ export function EditCustomerForm({
     setLoading(true)
     setError('')
     const form = e.currentTarget
-    const data = new FormData(form)
-
-    const result = await updateCustomerAction(
-      customer.id,
+    const formData = new FormData(form)
+    const activeBottles = bottles.filter((b) => !b.deleted)
+    fetcher.submit(
       {
-        name: data.get('name') as string,
-        ruby: data.get('ruby') as string,
-        nickname: data.get('nickname') as string,
-        phone,
-        email,
-        designatedCastIds,
-        isAlert,
-        alertReason: isAlert ? alertReason : '',
-        hasGlass,
-        glassMemo: hasGlass ? glassMemo : '',
-        receiptNames: receiptNames.filter((n) => n.trim()),
-        memo: data.get('memo') as string,
-        linkedCustomerIds: linkedIds,
-      },
-      bottles
-        .filter((b) => !b.isNew && !b.deleted && b.name.trim())
-        .map((b) => ({ id: b.id, name: b.name, remaining: `${b.remaining}%` })),
-      bottles
-        .filter((b) => b.isNew && !b.deleted && b.name.trim())
-        .map((b) => ({
+        data: {
+          name: formData.get('name') as string,
+          ruby: formData.get('ruby') as string,
+          nickname: formData.get('nickname') as string,
+          phone: formData.get('phone') as string,
+          email: formData.get('email') as string,
+          designatedCastIds,
+          isAlert,
+          alertReason: isAlert ? alertReason : '',
+          memo: formData.get('memo') as string,
+          linkedCustomerIds: linkedIds,
+          hasGlass,
+          glassMemo: hasGlass ? glassMemo : '',
+          receiptNames: receiptNames.filter((n) => n.trim()),
+        },
+        bottleUpdates: activeBottles.filter((b) => !b.isNew).map((b) => ({
+          id: b.id,
+          name: b.name,
+          remaining: `${b.remaining}%`,
+        })),
+        newBottles: activeBottles.filter((b) => b.isNew && b.name.trim()).map((b) => ({
           name: b.name,
           remaining: `${b.remaining}%`,
           openedDate: new Date(b.openedDate).toISOString(),
         })),
-      bottles.filter((b) => !b.isNew && b.deleted).map((b) => b.id)
+        deletedBottleIds: bottles.filter((b) => b.deleted && !b.isNew).map((b) => b.id),
+      },
+      { method: 'post', encType: 'application/json' }
     )
-
-    setLoading(false)
-    if (result.success) {
-      router.push(`/customers/${customer.id}`)
-    } else {
-      setError(result.error ?? '更新に失敗しました')
-    }
   }
 
   return (

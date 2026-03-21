@@ -1,13 +1,9 @@
-'use client'
-
 import { useState } from 'react'
-import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { Link, useFetcher, useLocation } from 'react-router'
 import { LogIn, LogOut, Menu, X, User, TrendingUp, CalendarDays } from 'lucide-react'
 import { FaAddressCard, FaStar } from 'react-icons/fa'
 import { GiAmpleDress } from 'react-icons/gi'
 import { cn } from '@/lib/utils'
-import { logoutAction } from '@/app/login/actions'
 
 interface NavProps {
   isLoggedIn: boolean
@@ -15,8 +11,7 @@ interface NavProps {
 }
 
 export function Nav({ isLoggedIn, sessionUser }: NavProps) {
-  const pathname = usePathname()
-  const router = useRouter()
+  const { pathname } = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const links = [
@@ -29,11 +24,10 @@ export function Nav({ isLoggedIn, sessionUser }: NavProps) {
 
   const bottomLinks = links.filter((l) => l.href !== '/favorites')
 
-  const handleLogout = async () => {
-    await logoutAction()
+  const logoutFetcher = useFetcher()
+  const handleLogout = () => {
     setSidebarOpen(false)
-    router.push('/')
-    router.refresh()
+    logoutFetcher.submit({}, { method: 'post', action: '/logout' })
   }
 
   const sidebarLinks = (
@@ -43,7 +37,7 @@ export function Nav({ isLoggedIn, sessionUser }: NavProps) {
         return (
           <Link
             key={href}
-            href={href}
+            to={href}
             onClick={() => setSidebarOpen(false)}
             className={cn(
               'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
@@ -72,7 +66,7 @@ export function Nav({ isLoggedIn, sessionUser }: NavProps) {
         </button>
       ) : (
         <Link
-          href="/login"
+          to="/login"
           onClick={() => setSidebarOpen(false)}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-brand-plum/70 hover:bg-brand-beige/60 hover:text-brand-plum transition-colors"
         >
@@ -104,7 +98,7 @@ export function Nav({ isLoggedIn, sessionUser }: NavProps) {
       {/* ─── トップヘッダー ─── */}
       <header className="fixed top-0 left-0 right-0 sm:left-60 z-30 h-16 bg-white border-b border-brand-beige shadow-sm">
         <div className="px-4 h-full flex items-center justify-between">
-          <Link href="/" className="flex items-center">
+          <Link to="/" className="flex items-center">
             <span className="text-brand-plum text-base" style={{ fontFamily: 'var(--font-audiowide)' }}>
               <span style={{ color: '#F1896C' }}>N</span>ight Master v1
             </span>
@@ -153,7 +147,7 @@ export function Nav({ isLoggedIn, sessionUser }: NavProps) {
             return (
               <Link
                 key={href}
-                href={href}
+                to={href}
                 className={cn(
                   'flex-1 flex flex-col items-center justify-center py-3 gap-1 text-xs font-medium transition-colors',
                   active ? 'text-brand-plum' : 'text-brand-plum/50'
@@ -171,7 +165,7 @@ export function Nav({ isLoggedIn, sessionUser }: NavProps) {
       <aside className="hidden sm:flex flex-col fixed top-0 left-0 h-full w-60 bg-white border-r border-brand-beige z-40">
         {/* ロゴ */}
         <div className="h-16 flex items-center px-4 border-b border-brand-beige shrink-0">
-          <Link href="/">
+          <Link to="/">
             <span className="text-brand-plum text-base" style={{ fontFamily: 'var(--font-audiowide)' }}>
               <span style={{ color: '#F1896C' }}>N</span>ight Master v1
             </span>

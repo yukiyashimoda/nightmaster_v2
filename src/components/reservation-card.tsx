@@ -1,11 +1,7 @@
-'use client'
-
-import { useState } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { Link, useFetcher, useRevalidator } from 'react-router'
 import { Clock, X, Edit, Trash2, Check, Search, ChevronRight, Phone, ExternalLink } from 'lucide-react'
 import type { Cast, Customer, Reservation } from '@/types'
-import { updateReservationAction, deleteReservationAction } from '@/lib/reservation-actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -94,10 +90,12 @@ function CastPicker({
 }
 
 export function ReservationCard({ reservation: r, customerMap, customers, castMap, casts, bottlesByCustomer, loggedIn, showDate }: ReservationCardProps) {
-  const router = useRouter()
+  const updateFetcher = useFetcher()
+  const deleteFetcher = useFetcher()
+  const visitedFetcher = useFetcher()
+  const { revalidate } = useRevalidator()
   const [isOpen, setIsOpen] = useState(false)
   const [mode, setMode] = useState<ModalMode>('view')
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [password, setPassword] = useState('')
 
@@ -119,7 +117,9 @@ export function ReservationCard({ reservation: r, customerMap, customers, castMa
   const [editMemo, setEditMemo] = useState(r.memo)
   const [customerQuery, setCustomerQuery] = useState('')
   const [isVisited, setIsVisited] = useState(r.isVisited)
-  const [visitedLoading, setVisitedLoading] = useState(false)
+
+  const loading = updateFetcher.state !== 'idle' || deleteFetcher.state !== 'idle'
+  const visitedLoading = visitedFetcher.state !== 'idle'
 
   const reservationCustomers = r.customerIds.map((id) => customerMap.get(id)).filter(Boolean) as Customer[]
   const designatedCastNames = r.designatedCastIds.map((id) => castMap.get(id)?.name).filter(Boolean).join('・')
@@ -130,6 +130,25 @@ export function ReservationCard({ reservation: r, customerMap, customers, castMa
     : customers
   const editSelectedCustomers = customers.filter((c) => editCustomerIds.includes(c.id))
 
+  useEffect(() => {
+    if (updateFetcher.state === 'idle' && updateFetcher.data?.success) {
+      closeModal()
+      revalidate()
+    } else if (updateFetcher.state === 'idle' && updateFetcher.data?.error) {
+      setError(updateFetcher.data.error)
+    }
+  }, [updateFetcher.state, updateFetcher.data])
+
+  useEffect(() => {
+    if (deleteFetcher.state === 'idle' && deleteFetcher.data?.success) {
+      closeModal()
+      revalidate()
+    } else if (deleteFetcher.state === 'idle' && deleteFetcher.data?.error) {
+      setError(deleteFetcher.data.error)
+      setPassword('')
+    }
+  }, [deleteFetcher.state, deleteFetcher.data])
+
   function toggleEditCustomer(id: string) {
     setEditCustomerIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])
   }
@@ -139,44 +158,42 @@ export function ReservationCard({ reservation: r, customerMap, customers, castMa
 
   async function handleEdit(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true); setError('')
-    const result = await updateReservationAction(r.id, {
-      date: editDate,
-      time: editTime,
-      partySize: editPartySize,
-      phone: editPhone,
-      hasDesignation: editHasDesignation,
-      designatedCastIds: editHasDesignation ? editDesignatedCastIds : [],
-      isAccompanied: editIsAccompanied,
-      accompaniedCastIds: editIsAccompanied ? editAccompaniedCastIds : [],
-      customerType: editCustomerType,
-      customerIds: editCustomerType === 'existing' ? editCustomerIds : [],
-      guestName: editCustomerType === 'new' ? editGuestName : '',
-      priceType: editPriceType,
-      partyPlanPrice: editPriceType === 'party' && editPartyPlanPrice ? Number(editPartyPlanPrice) : null,
-      partyPlanMinutes: editPriceType === 'party' && editPartyPlanMinutes ? Number(editPartyPlanMinutes) : null,
-      memo: editMemo,
-    })
-    setLoading(false)
-    if (result.success) { closeModal(); router.refresh() }
-    else setError(result.error ?? '更新に失敗しました')
+    updateFetcher.submit(
+      {
+        date: editDate,
+        time: editTime,
+        partySize: editPartySize,
+        phone: editPhone,
+        hasDesignation: editHasDesignation,
+        designatedCastIds: editHasDesignation ? editDesignatedCastIds : [],
+        isAccompanied: editIsAccompanied,
+        accompaniedCastIds: editIsAccompanied ? editAccompaniedCastIds : [],
+        customerType: editCustomerType,
+        customerIds: editCustomerType === 'existing' ? editCustomerIds : [],
+        guestName: editCustomerType === 'new' ? editGuestName : '',
+        priceType: editPriceType,
+        partyPlanPrice: editPriceType === 'party' && editPartyPlanPrice ? Number(editPartyPlanPrice) : null,
+        partyPlanMinutes: editPriceType === 'party' && editPartyPlanMinutes ? Number(editPartyPlanMinutes) : null,
+        memo: editMemo,
+      },
+      { method: 'post', action: `/api/reservation/${r.id}`, encType: 'application/json' }
+    )
   }
 
   async function handleDelete() {
-    setLoading(true); setError('')
-    const result = await deleteReservationAction(r.id, password)
-    setLoading(false)
-    if (result.success) { closeModal(); router.refresh() }
-    else { setError(result.error ?? '削除に失敗しました'); setPassword('') }
+    deleteFetcher.submit(
+      { _intent: 'delete', password },
+      { method: 'post', action: `/api/reservation/${r.id}`, encType: 'application/json' }
+    )
   }
 
   async function toggleVisited() {
-    setVisitedLoading(true)
     const next = !isVisited
-    await updateReservationAction(r.id, { isVisited: next })
     setIsVisited(next)
-    setVisitedLoading(false)
-    router.refresh()
+    visitedFetcher.submit(
+      { isVisited: next },
+      { method: 'post', action: `/api/reservation/${r.id}`, encType: 'application/json' }
+    )
   }
 
   return (
@@ -208,7 +225,7 @@ export function ReservationCard({ reservation: r, customerMap, customers, castMa
                     return (
                       <span key={cid}>
                         {i > 0 && '・'}
-                        <Link href={`/casts/${cid}`} onClick={(e) => e.stopPropagation()} className="hover:underline">{c.name}</Link>
+                        <Link to={`/casts/${cid}`} onClick={(e) => e.stopPropagation()} className="hover:underline">{c.name}</Link>
                       </span>
                     )
                   })}
@@ -223,7 +240,7 @@ export function ReservationCard({ reservation: r, customerMap, customers, castMa
                     return (
                       <span key={cid}>
                         {i > 0 && '・'}
-                        <Link href={`/casts/${cid}`} onClick={(e) => e.stopPropagation()} className="hover:underline">{c.name}</Link>
+                        <Link to={`/casts/${cid}`} onClick={(e) => e.stopPropagation()} className="hover:underline">{c.name}</Link>
                       </span>
                     )
                   })}
@@ -243,7 +260,7 @@ export function ReservationCard({ reservation: r, customerMap, customers, castMa
           {reservationCustomers.map((c) => (
             <Link
               key={c.id}
-              href={`/customers/${c.id}`}
+              to={`/customers/${c.id}`}
               onClick={(e) => e.stopPropagation()}
               className="text-xs text-brand-plum font-medium hover:underline"
             >
@@ -321,7 +338,7 @@ export function ReservationCard({ reservation: r, customerMap, customers, castMa
                     {reservationCustomers.map((c, i) => (
                       <span key={c.id}>
                         {i > 0 && '・'}
-                        <Link href={`/customers/${c.id}`} onClick={closeModal} className="ml-1 font-medium text-brand-plum hover:underline inline-flex items-center gap-0.5">
+                        <Link to={`/customers/${c.id}`} onClick={closeModal} className="ml-1 font-medium text-brand-plum hover:underline inline-flex items-center gap-0.5">
                           {c.name}<ExternalLink className="h-3 w-3 opacity-50" />
                         </Link>
                       </span>
@@ -337,7 +354,7 @@ export function ReservationCard({ reservation: r, customerMap, customers, castMa
                             return (
                               <span key={cid}>
                                 {i > 0 && '・'}
-                                <Link href={`/casts/${cid}`} onClick={closeModal} className="font-medium text-brand-plum hover:underline inline-flex items-center gap-0.5">
+                                <Link to={`/casts/${cid}`} onClick={closeModal} className="font-medium text-brand-plum hover:underline inline-flex items-center gap-0.5">
                                   {c.name}<ExternalLink className="h-3 w-3 opacity-50" />
                                 </Link>
                               </span>
@@ -355,7 +372,7 @@ export function ReservationCard({ reservation: r, customerMap, customers, castMa
                             return (
                               <span key={cid}>
                                 {i > 0 && '・'}
-                                <Link href={`/casts/${cid}`} onClick={closeModal} className="font-medium text-brand-plum hover:underline inline-flex items-center gap-0.5">
+                                <Link to={`/casts/${cid}`} onClick={closeModal} className="font-medium text-brand-plum hover:underline inline-flex items-center gap-0.5">
                                   {c.name}<ExternalLink className="h-3 w-3 opacity-50" />
                                 </Link>
                               </span>

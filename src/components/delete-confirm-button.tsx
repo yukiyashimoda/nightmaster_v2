@@ -1,24 +1,37 @@
-'use client'
-
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useRef, useEffect } from 'react'
+import { useFetcher, useNavigate } from 'react-router'
 import { Trash2, X, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 interface DeleteConfirmButtonProps {
-  action: (password: string) => Promise<{ success: boolean; error?: string }>
+  actionUrl: string
   redirectTo: string
   itemName: string
 }
 
-export function DeleteConfirmButton({ action, redirectTo, itemName }: DeleteConfirmButtonProps) {
-  const router = useRouter()
+export function DeleteConfirmButton({ actionUrl, redirectTo, itemName }: DeleteConfirmButtonProps) {
+  const fetcher = useFetcher()
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+
+  // Watch for successful delete
+  const prevState = useRef(fetcher.state)
+  useEffect(() => {
+    if (prevState.current !== 'idle' && fetcher.state === 'idle') {
+      if (fetcher.data?.success) {
+        handleClose()
+        navigate(redirectTo)
+      } else if (fetcher.data?.error) {
+        setError(fetcher.data.error)
+        setPassword('')
+      }
+    }
+    prevState.current = fetcher.state
+  }, [fetcher.state, fetcher.data])
 
   const handleClose = () => {
     setOpen(false)
@@ -26,21 +39,15 @@ export function DeleteConfirmButton({ action, redirectTo, itemName }: DeleteConf
     setError('')
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
-    setError('')
-    const result = await action(password)
-    setLoading(false)
-    if (result.success) {
-      handleClose()
-      router.push(redirectTo)
-      router.refresh()
-    } else {
-      setError(result.error ?? '削除に失敗しました')
-      setPassword('')
-    }
+    fetcher.submit(
+      { _intent: 'delete', password },
+      { method: 'post', action: actionUrl, encType: 'application/json' }
+    )
   }
+
+  const loading = fetcher.state !== 'idle'
 
   return (
     <>

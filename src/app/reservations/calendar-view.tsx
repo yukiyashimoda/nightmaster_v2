@@ -1,7 +1,5 @@
-'use client'
-
 import { useState, useMemo, useRef, useEffect } from 'react'
-import Link from 'next/link'
+import { Link } from 'react-router'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import type { Cast, Customer, Reservation } from '@/types'
 import { ReservationCard } from '@/components/reservation-card'
@@ -452,7 +450,7 @@ export function CalendarView({ reservations, customers, customerMap, casts, cast
 
       {/* FAB */}
       <Link
-        href="/reservations/new"
+        to="/reservations/new"
         className="fixed bottom-20 right-4 sm:bottom-6 z-40 w-14 h-14 bg-brand-plum hover:bg-brand-plum/90 text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
         aria-label="予約を追加"
       >

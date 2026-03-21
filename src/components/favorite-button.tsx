@@ -1,8 +1,6 @@
-'use client'
-
 import { useState } from 'react'
 import { FaStar, FaRegStar } from 'react-icons/fa'
-import { toggleFavoriteAction } from '@/app/customers/favorite-action'
+import { useFetcher } from 'react-router'
 
 interface FavoriteButtonProps {
   customerId: string
@@ -13,6 +11,7 @@ export function FavoriteButton({ customerId, isFavorite }: FavoriteButtonProps) 
   const [fav, setFav] = useState(isFavorite)
   const [loading, setLoading] = useState(false)
 
+  const fetcher = useFetcher()
   const handleClick = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -20,7 +19,10 @@ export function FavoriteButton({ customerId, isFavorite }: FavoriteButtonProps) 
     const next = !fav
     setFav(next)
     setLoading(true)
-    await toggleFavoriteAction(customerId, next)
+    fetcher.submit(
+      { customerId, isFavorite: next },
+      { method: 'post', action: '/api/favorite', encType: 'application/json' }
+    )
     setLoading(false)
   }
 

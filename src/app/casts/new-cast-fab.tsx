@@ -1,17 +1,15 @@
-'use client'
-
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useFetcher, useRevalidator } from 'react-router'
 import { Plus, X } from 'lucide-react'
 import { GiAmpleDress } from 'react-icons/gi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { createCastAction } from './actions'
 
 export function NewCastFab() {
-  const router = useRouter()
+  const fetcher = useFetcher()
+  const { revalidate } = useRevalidator()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -27,18 +25,21 @@ export function NewCastFab() {
     setMemo('')
   }
 
+  useEffect(() => {
+    if (fetcher.state === 'idle' && fetcher.data?.success) {
+      handleClose()
+      revalidate()
+    } else if (fetcher.state === 'idle' && fetcher.data?.error) {
+      setError(fetcher.data.error)
+      setLoading(false)
+    }
+  }, [fetcher.state, fetcher.data])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
-    const result = await createCastAction({ name, ruby, memo })
-    setLoading(false)
-    if (result.success) {
-      handleClose()
-      router.refresh()
-    } else {
-      setError(result.error ?? '登録に失敗しました')
-    }
+    fetcher.submit({ name, ruby, memo }, { method: 'post', action: '/casts', encType: 'application/json' })
   }
 
   return (

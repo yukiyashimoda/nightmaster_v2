@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { Link } from 'react-router'
 import { AlertTriangle, Calendar } from 'lucide-react'
 import { GiBrandyBottle } from 'react-icons/gi'
 import { Badge } from '@/components/ui/badge'
@@ -17,7 +17,7 @@ export function CustomerCard({ customer, bottles, designatedCastRuby }: Customer
   const avatarLabel = designatedCastRuby ?? 'FREE'
 
   return (
-    <Link href={`/customers/${customer.id}`}>
+    <Link to={`/customers/${customer.id}`}>
       <div
         className={cn(
           'flex items-center gap-3 px-4 py-3 mx-3 my-2 rounded-2xl bg-white transition-all',
