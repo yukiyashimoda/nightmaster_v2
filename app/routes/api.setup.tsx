@@ -51,6 +51,32 @@ export async function loader() {
       memo TEXT NOT NULL DEFAULT ''
     )
   `
+  await sql`
+    CREATE TABLE IF NOT EXISTS reservations (
+      id TEXT PRIMARY KEY,
+      date TEXT NOT NULL,
+      time TEXT NOT NULL,
+      party_size INTEGER NOT NULL DEFAULT 1,
+      has_designation BOOLEAN NOT NULL DEFAULT false,
+      designated_cast_id TEXT,
+      designated_cast_ids TEXT[] NOT NULL DEFAULT '{}',
+      is_accompanied BOOLEAN NOT NULL DEFAULT false,
+      accompanied_cast_id TEXT,
+      accompanied_cast_ids TEXT[] NOT NULL DEFAULT '{}',
+      customer_type TEXT NOT NULL DEFAULT 'existing',
+      customer_id TEXT,
+      customer_ids TEXT[] NOT NULL DEFAULT '{}',
+      guest_name TEXT NOT NULL DEFAULT '',
+      price_type TEXT NOT NULL DEFAULT 'normal',
+      party_plan_price INTEGER,
+      party_plan_minutes INTEGER,
+      phone TEXT NOT NULL DEFAULT '',
+      memo TEXT NOT NULL DEFAULT '',
+      is_visited BOOLEAN NOT NULL DEFAULT false,
+      updated_at TEXT NOT NULL DEFAULT '',
+      updated_by TEXT NOT NULL DEFAULT ''
+    )
+  `
 
   const existing = await sql`SELECT COUNT(*) as count FROM customers`
   if (Number(existing[0].count) > 0) {
