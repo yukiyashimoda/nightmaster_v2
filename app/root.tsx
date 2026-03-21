@@ -1,4 +1,4 @@
-import { Links, Meta, Outlet, Scripts, ScrollRestoration, useNavigate } from 'react-router'
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, useNavigate, useRouteError, isRouteErrorResponse } from 'react-router'
 import type { Route } from './+types/root'
 import { RouterProvider } from '@heroui/react'
 import { Nav } from '../src/components/nav'
@@ -40,6 +40,33 @@ export function meta(): Route.MetaDescriptors {
     { name: 'apple-mobile-web-app-title', content: 'Night Master v1' },
     { name: 'viewport', content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' },
   ]
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError()
+  const message = isRouteErrorResponse(error)
+    ? `${error.status} ${error.statusText}`
+    : error instanceof Error
+    ? error.message
+    : String(error)
+  const stack = error instanceof Error ? error.stack : undefined
+
+  return (
+    <html lang="ja">
+      <head>
+        <meta charSet="utf-8" />
+        <title>エラー</title>
+      </head>
+      <body style={{ fontFamily: 'monospace', padding: '2rem', background: '#1a1a2e', color: '#e0e0e0' }}>
+        <h1 style={{ color: '#ff6b6b' }}>Server Error</h1>
+        <pre style={{ background: '#0f0f1a', padding: '1rem', borderRadius: '4px', overflow: 'auto', whiteSpace: 'pre-wrap' }}>
+          {message}
+          {stack ? '\n\n' + stack : ''}
+        </pre>
+        <Scripts />
+      </body>
+    </html>
+  )
 }
 
 export default function App({ loaderData }: Route.ComponentProps) {
