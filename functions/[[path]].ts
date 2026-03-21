@@ -4,7 +4,14 @@ import * as build from '../build/server'
 
 export const onRequest = createPagesFunctionHandler({
   build,
-  getLoadContext: (context) => ({
-    cloudflare: context.env as unknown as { DATABASE_URL?: string },
-  }),
+  getLoadContext: (context) => {
+    // Cloudflare Pages は bindings を context.env で渡す。
+    // nodejs_compat でも process.env に自動マップされないケースがあるため
+    // 明示的に転送してサーバーコードが process.env.DATABASE_URL を読めるようにする。
+    const env = context.env as Record<string, string | undefined>
+    if (env.DATABASE_URL && !process.env.DATABASE_URL) {
+      process.env.DATABASE_URL = env.DATABASE_URL
+    }
+    return { cloudflare: env }
+  },
 })
