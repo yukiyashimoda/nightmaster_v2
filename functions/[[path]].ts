@@ -80,32 +80,14 @@ const handler = createPagesFunctionHandler({
   build,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getLoadContext: (context: any) => {
-    console.log("getLoadContext called")
     const env = (context?.context?.cloudflare?.env ?? context?.env ?? {}) as Record<string, string | undefined>
-    const hasSupabase = !!(env.SUPABASE_URL && env.SUPABASE_ANON_KEY)
-    console.log("hasSupabase:", hasSupabase, "url:", env.SUPABASE_URL?.slice(0, 20))
-    const supabase = hasSupabase
-      ? makeDbClient(env.SUPABASE_URL!, env.SUPABASE_ANON_KEY!)
+    const supabase = (env.SUPABASE_URL && env.SUPABASE_ANON_KEY)
+      ? makeDbClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY)
       : null
     return { cloudflare: env, supabase }
   },
 })
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const onRequest: any = async (ctx: any) => {
-  try {
-    const res = await handler(ctx)
-    if (res.status >= 500) {
-      const body = await res.text()
-      console.error("React Router 500 body:", body.slice(0, 500))
-      return new Response(body || 'empty body', {
-        status: 200,
-        headers: { 'content-type': 'text/html; charset=utf-8' },
-      })
-    }
-    return res
-  } catch (e) {
-    console.error("onRequest error:", String(e), (e as Error)?.stack)
-    return new Response(`Worker error: ${String(e)}`, { status: 200, headers: { 'content-type': 'text/plain' } })
-  }
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const onRequest: any = handler

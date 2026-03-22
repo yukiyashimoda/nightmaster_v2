@@ -6,16 +6,9 @@ import { isAuthenticated, getSessionUser } from '../src/lib/auth.server'
 import '../src/app/globals.css'
 
 export async function loader({ request }: Route.LoaderArgs) {
-  console.log("root loader called")
-  try {
-    const loggedIn = isAuthenticated(request)
-    const sessionUser = getSessionUser(request)
-    console.log("root loader ok, loggedIn:", loggedIn)
-    return { loggedIn, sessionUser }
-  } catch (e) {
-    console.error("root loader error:", String(e))
-    throw e
-  }
+  const loggedIn = isAuthenticated(request)
+  const sessionUser = getSessionUser(request)
+  return { loggedIn, sessionUser }
 }
 
 export function links(): Route.LinkDescriptors {
