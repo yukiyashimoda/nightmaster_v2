@@ -1,42 +1,28 @@
 import { neon, neonConfig, type NeonQueryFunction } from '@neondatabase/serverless'
 
+/**
+ * Cloudflare Pages / Workers エッジ向け設定
+ *
+ * neon() は WebSocket ではなく HTTP fetch を使用するため
+ * Cloudflare Workers でそのまま動作する。
+ * fetchConnectionCache を有効にすることで、同一アイソレート内の
+ * リクエスト間で HTTP 接続を再利用しスループットを向上させる。
+ */
 neonConfig.fetchConnectionCache = true
 
 export type Sql = NeonQueryFunction<false, false>
 
-let _url: string | undefined = undefined
+/** モジュールスコープのシングルトン — アイソレートの寿命中に一度だけ生成 */
 let _sql: Sql | null = null
 
 /**
- * Cloudflare Pages の getLoadContext から DATABASE_URL を受け取る。
- * process.env は Workers では読み取り専用のため、専用の setter で保持する。
+ * 型安全な Neon SQL クライアントを返す。
+ * DATABASE_URL が未設定の場合は起動時に明示的なエラーを投げる。
  */
-export function initDB(url: string) {
-  if (_url !== url) {
-    _url = url
-    _sql = null
-  }
-}
-
-/** DATABASE_URL が利用可能かどうかを返す */
-export function hasDB(): boolean {
-  return !!resolveUrl()
-}
-
-function resolveUrl(): string | undefined {
-  return (
-    _url ??
-    (globalThis as Record<string, unknown>).__DATABASE_URL as string | undefined ??
-    process.env.DATABASE_URL
-  )
-}
-
 export function getDB(): Sql {
-  const url = resolveUrl()
-  // URL が変わったときはクライアントを再生成
-  if (!_sql || _url !== url) {
+  if (!_sql) {
+    const url = process.env.DATABASE_URL
     if (!url) throw new Error('DATABASE_URL is not set')
-    _url = url
     _sql = neon(url)
   }
   return _sql
