@@ -1,16 +1,8 @@
-import type { PlatformProxy } from 'wrangler'
-import type { SupabaseClient } from './app/lib/db.server'
-
-interface Env {
-  SUPABASE_URL?: string
-  SUPABASE_ANON_KEY?: string
-}
-
-type Cloudflare = Omit<PlatformProxy<Env>, 'dispose'>
+import type { DbClient } from './app/lib/db.server'
 
 declare module 'react-router' {
   interface AppLoadContext {
-    cloudflare: Cloudflare
-    supabase: SupabaseClient | null
+    cloudflare: Record<string, string | undefined>
+    supabase: DbClient | null
   }
 }

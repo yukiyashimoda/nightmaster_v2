@@ -78,11 +78,12 @@ function makeDbClient(supabaseUrl: string, anonKey: string) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const handler = createPagesFunctionHandler({
   build,
-  getLoadContext: (context) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getLoadContext: (context: any) => {
     console.log("getLoadContext called")
-    const env = context.env as Record<string, string | undefined>
+    const env = (context?.context?.cloudflare?.env ?? context?.env ?? {}) as Record<string, string | undefined>
     const hasSupabase = !!(env.SUPABASE_URL && env.SUPABASE_ANON_KEY)
-    console.log("hasSupabase:", hasSupabase)
+    console.log("hasSupabase:", hasSupabase, "url:", env.SUPABASE_URL?.slice(0, 20))
     const supabase = hasSupabase
       ? makeDbClient(env.SUPABASE_URL!, env.SUPABASE_ANON_KEY!)
       : null
