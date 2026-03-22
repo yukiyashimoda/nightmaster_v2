@@ -2,6 +2,14 @@ import { getDB } from '../lib/db.server'
 import { mockCustomers, mockBottles, mockCasts, mockVisitRecords } from '../../src/lib/mock-data'
 
 export async function loader() {
+  try {
+    return await runSetup()
+  } catch (e) {
+    return Response.json({ ok: false, error: String(e) }, { status: 500 })
+  }
+}
+
+async function runSetup() {
   const sql = getDB()
 
   await sql`
