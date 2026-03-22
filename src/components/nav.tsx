@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useFetcher, useLocation } from 'react-router'
-import { LogIn, LogOut, Menu, X, User, TrendingUp, CalendarDays } from 'lucide-react'
+import { LogIn, LogOut, Menu, X, User, TrendingUp, CalendarDays, Store, ChevronDown, Check, Settings } from 'lucide-react'
 import { FaAddressCard, FaStar } from 'react-icons/fa'
 import { GiAmpleDress } from 'react-icons/gi'
 import { cn } from '@/lib/utils'
@@ -8,11 +8,14 @@ import { cn } from '@/lib/utils'
 interface NavProps {
   isLoggedIn: boolean
   sessionUser: string | null
+  stores?: Array<{ id: string; name: string }>
+  currentStoreId?: string | null
 }
 
-export function Nav({ isLoggedIn, sessionUser }: NavProps) {
+export function Nav({ isLoggedIn, sessionUser, stores = [], currentStoreId }: NavProps) {
   const { pathname } = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [storeMenuOpen, setStoreMenuOpen] = useState(false)
 
   const links = [
     { href: '/', label: 'ダッシュボード', Icon: TrendingUp },
@@ -20,15 +23,63 @@ export function Nav({ isLoggedIn, sessionUser }: NavProps) {
     { href: '/casts', label: 'キャスト', Icon: GiAmpleDress },
     { href: '/favorites', label: 'お気に入り', Icon: FaStar },
     { href: '/reservations', label: '予約', Icon: CalendarDays },
+    { href: '/settings', label: '設定', Icon: Settings },
   ]
 
   const bottomLinks = links.filter((l) => l.href !== '/favorites')
-
+  const currentStore = stores.find((s) => s.id === currentStoreId)
+  const switchFetcher = useFetcher()
   const logoutFetcher = useFetcher()
+
   const handleLogout = () => {
     setSidebarOpen(false)
     logoutFetcher.submit({}, { method: 'post', action: '/logout' })
   }
+
+  const handleStoreSwitch = (storeId: string) => {
+    setStoreMenuOpen(false)
+    switchFetcher.submit({ store_id: storeId }, { method: 'post', action: '/api/store-switch' })
+  }
+
+  const storeSwitcher = isLoggedIn && stores.length > 0 && (
+    <div className="px-3 py-2 border-b border-brand-beige relative">
+      <button
+        onClick={() => setStoreMenuOpen((v) => !v)}
+        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-brand-beige/60 transition-colors text-left"
+      >
+        <Store className="h-4 w-4 text-brand-plum/50 shrink-0" />
+        <span className="flex-1 text-sm font-medium text-brand-plum truncate">
+          {currentStore?.name ?? '店舗を選択'}
+        </span>
+        {stores.length > 1 && <ChevronDown className="h-3.5 w-3.5 text-brand-plum/40 shrink-0" />}
+      </button>
+
+      {storeMenuOpen && stores.length > 1 && (
+        <div className="absolute left-3 right-3 top-full mt-1 z-50 bg-white border border-brand-beige rounded-xl shadow-lg py-1">
+          {stores.map((store) => (
+            <button
+              key={store.id}
+              onClick={() => handleStoreSwitch(store.id)}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-brand-plum hover:bg-brand-beige/60 transition-colors"
+            >
+              <Check className={cn('h-3.5 w-3.5 shrink-0', store.id === currentStoreId ? 'text-brand-plum' : 'opacity-0')} />
+              <span className="truncate">{store.name}</span>
+            </button>
+          ))}
+          <div className="border-t border-brand-beige mt-1 pt-1">
+            <Link
+              to="/store-setup"
+              onClick={() => setStoreMenuOpen(false)}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-brand-plum/60 hover:bg-brand-beige/60 transition-colors"
+            >
+              <Store className="h-3.5 w-3.5" />
+              新しい店舗を追加
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 
   const sidebarLinks = (
     <nav className="flex-1 p-3 space-y-1">
@@ -100,7 +151,7 @@ export function Nav({ isLoggedIn, sessionUser }: NavProps) {
         <div className="px-4 h-full flex items-center justify-between">
           <Link to="/" className="flex items-center">
             <span className="text-brand-plum text-base" style={{ fontFamily: 'var(--font-audiowide)' }}>
-              <span style={{ color: '#F1896C' }}>N</span>ight Master v1
+              <span style={{ color: '#F1896C' }}>N</span>ight Master
             </span>
           </Link>
           {/* ハンバーガー（スマホのみ） */}
@@ -131,10 +182,11 @@ export function Nav({ isLoggedIn, sessionUser }: NavProps) {
         {/* ロゴ */}
         <div className="h-16 flex items-center px-4 border-b border-brand-beige shrink-0">
           <span className="text-brand-plum text-base" style={{ fontFamily: 'var(--font-audiowide)' }}>
-            <span style={{ color: '#F1896C' }}>N</span>ight Master v1
+            <span style={{ color: '#F1896C' }}>N</span>ight Master
           </span>
         </div>
         {userCard}
+        {storeSwitcher}
         {sidebarLinks}
         {sidebarBottom}
       </aside>
@@ -167,11 +219,12 @@ export function Nav({ isLoggedIn, sessionUser }: NavProps) {
         <div className="h-16 flex items-center px-4 border-b border-brand-beige shrink-0">
           <Link to="/">
             <span className="text-brand-plum text-base" style={{ fontFamily: 'var(--font-audiowide)' }}>
-              <span style={{ color: '#F1896C' }}>N</span>ight Master v1
+              <span style={{ color: '#F1896C' }}>N</span>ight Master
             </span>
           </Link>
         </div>
         {userCard}
+        {storeSwitcher}
         {sidebarLinks}
         {sidebarBottom}
       </aside>

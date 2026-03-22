@@ -1,12 +1,12 @@
 import { redirect } from 'react-router'
-import type { Route } from '../+types/routes/login'
+import type { Route } from '../+types/routes/register'
 import { isAuthenticated, makeAuthCookies, makePkceCookie } from '../../src/lib/auth.server'
-import { signInWithPassword, generateCodeVerifier, generateCodeChallenge, getOAuthUrl } from '../lib/supabase-auth.server'
+import { signUp, generateCodeVerifier, generateCodeChallenge, getOAuthUrl } from '../lib/supabase-auth.server'
 import { Button } from '../../src/components/ui/button'
 import { Input } from '../../src/components/ui/input'
 import { Label } from '../../src/components/ui/label'
 
-export async function loader({ request, context }: Route.LoaderArgs) {
+export async function loader({ request }: Route.LoaderArgs) {
   if (isAuthenticated(request)) {
     throw redirect('/')
   }
@@ -31,44 +31,32 @@ export async function action({ request, context }: Route.ActionArgs) {
     })
   }
 
-  // Email/password login
   const email = formData.get('email') as string
   const password = formData.get('password') as string
+  const passwordConfirm = formData.get('password_confirm') as string
+
+  if (password !== passwordConfirm) {
+    return { error: 'パスワードが一致しません' }
+  }
 
   if (!supabaseUrl || !anonKey) {
     return { error: 'サーバー設定が不完全です' }
   }
 
   try {
-    const tokens = await signInWithPassword(supabaseUrl, anonKey, email, password)
-    const { supabase } = context
-    let storeId: string | null = null
+    const tokens = await signUp(supabaseUrl, anonKey, email, password)
 
-    if (supabase) {
-      const { data: userStores } = await supabase.from('user_stores').select('*').eq('user_id', tokens.user.id)
-      if (userStores && userStores.length > 0) {
-        storeId = userStores[0].store_id
-      }
-    }
-
-    if (!storeId) {
-      // No store yet — redirect to setup with tokens in temp cookies
-      const cookies = makeAuthCookies(tokens.access_token, tokens.refresh_token, '')
-      return redirect('/store-setup', {
-        headers: cookies.map((c) => ['Set-Cookie', c] as [string, string]),
-      })
-    }
-
-    const cookies = makeAuthCookies(tokens.access_token, tokens.refresh_token, storeId)
-    return redirect('/', {
+    // Set temporary auth cookies (no storeId yet) and redirect to store setup
+    const cookies = makeAuthCookies(tokens.access_token, tokens.refresh_token, '')
+    return redirect('/store-setup', {
       headers: cookies.map((c) => ['Set-Cookie', c] as [string, string]),
     })
   } catch (err) {
-    return { error: err instanceof Error ? err.message : 'ログインに失敗しました' }
+    return { error: err instanceof Error ? err.message : '登録に失敗しました' }
   }
 }
 
-export default function LoginPage({ actionData }: Route.ComponentProps) {
+export default function RegisterPage({ actionData }: Route.ComponentProps) {
   const error = actionData?.error
 
   return (
@@ -81,7 +69,7 @@ export default function LoginPage({ actionData }: Route.ComponentProps) {
         </div>
 
         <div className="bg-white rounded-xl border border-brand-beige shadow-sm p-6 space-y-5">
-          <h1 className="text-lg font-bold text-brand-plum">ログイン</h1>
+          <h1 className="text-lg font-bold text-brand-plum">新規登録</h1>
 
           {error && (
             <div className="p-3 rounded-lg bg-brand-coral/10 border border-brand-coral/40 text-brand-coral text-sm">
@@ -96,10 +84,14 @@ export default function LoginPage({ actionData }: Route.ComponentProps) {
             </div>
             <div className="space-y-1.5">
               <Label className="text-brand-plum">パスワード</Label>
-              <Input name="password" type="password" required placeholder="パスワードを入力" autoComplete="current-password" />
+              <Input name="password" type="password" required placeholder="8文字以上" autoComplete="new-password" minLength={8} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-brand-plum">パスワード（確認）</Label>
+              <Input name="password_confirm" type="password" required placeholder="パスワードを再入力" autoComplete="new-password" />
             </div>
             <Button type="submit" className="w-full bg-brand-plum hover:bg-brand-plum/90 text-white font-bold h-11">
-              ログイン
+              アカウントを作成
             </Button>
           </form>
 
@@ -122,16 +114,16 @@ export default function LoginPage({ actionData }: Route.ComponentProps) {
                   <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
                   <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                 </svg>
-                Googleでログイン
+                Googleで登録
               </Button>
             </form>
 
           </div>
 
           <p className="text-center text-sm text-brand-plum/50">
-            アカウントをお持ちでない方は{' '}
-            <a href="/register" className="text-brand-plum font-medium hover:underline">
-              新規登録
+            すでにアカウントをお持ちの方は{' '}
+            <a href="/login" className="text-brand-plum font-medium hover:underline">
+              ログイン
             </a>
           </p>
         </div>

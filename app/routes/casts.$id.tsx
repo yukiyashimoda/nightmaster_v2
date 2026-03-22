@@ -113,11 +113,11 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 export async function action({ request, params, context }: Route.ActionArgs) {
   const body = await request.json()
   if (body._intent === 'delete') {
-    const { VALID_PASS } = await import('../../src/lib/auth.server')
+    const { isAuthenticated } = await import('../../src/lib/auth.server')
     const { deleteCast } = await import('../../src/lib/kv.server')
     const { getDb: getDbInAction } = await import('../lib/db.server')
-    if (body.password !== VALID_PASS) {
-      return Response.json({ success: false, error: 'パスワードが違います' })
+    if (!isAuthenticated(request)) {
+      return Response.json({ success: false, error: '認証が必要です' }, { status: 401 })
     }
     const db = getDbInAction(context)
     await deleteCast(db, params.id)

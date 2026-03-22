@@ -145,6 +145,7 @@ export async function createCustomer(db: DbClient | null, data: Omit<Customer, '
     receipt_names: data.receiptNames ?? [], phone: data.phone ?? '',
     email: data.email ?? '', last_visit_date: data.lastVisitDate,
     updated_at: updatedAt, updated_by: data.updatedBy,
+    store_id: db.storeId,
   }).select().single()
   if (error) throw error
   return toCustomer(row)
@@ -215,6 +216,7 @@ export async function createBottle(db: DbClient | null, data: Omit<Bottle, 'id'>
   const { data: row, error } = await db.from('bottles').insert({
     id, customer_id: data.customerId, name: data.name,
     remaining: data.remaining, opened_date: data.openedDate,
+    store_id: db.storeId,
   }).select().single()
   if (error) throw error
   return toBottle(row)
@@ -272,6 +274,7 @@ export async function createCast(db: DbClient | null, data: Omit<Cast, 'id' | 'u
   const { data: row, error } = await db.from('casts').insert({
     id, name: data.name, ruby: data.ruby, memo: data.memo,
     updated_at: updatedAt, updated_by: data.updatedBy,
+    store_id: db.storeId,
   }).select().single()
   if (error) throw error
   return toCast(row)
@@ -348,6 +351,7 @@ export async function createVisitRecord(db: DbClient | null, data: Omit<VisitRec
     bottles_opened: data.bottlesOpened, bottles_used: data.bottlesUsed,
     memo: data.memo, is_alert: data.isAlert ?? false, alert_reason: data.alertReason ?? '',
     bottle_snapshots: data.bottleSnapshots ?? [],
+    store_id: db.storeId,
   }).select().single()
   if (error) throw error
   await db.from('customers').update({ last_visit_date: data.visitDate, updated_at: new Date().toISOString() }).eq('id', data.customerId)
@@ -420,6 +424,7 @@ export async function createReservation(db: DbClient | null, data: Omit<Reservat
     guest_name: data.guestName, phone: data.phone, price_type: data.priceType,
     party_plan_price: data.partyPlanPrice, party_plan_minutes: data.partyPlanMinutes,
     memo: data.memo, is_visited: data.isVisited, updated_at: updatedAt, updated_by: data.updatedBy,
+    store_id: db.storeId,
   }).select().single()
   if (error) throw error
   return toReservation(row)

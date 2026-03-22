@@ -1,14 +1,32 @@
-import { Links, Meta, Outlet, Scripts, ScrollRestoration, useNavigate, useRouteError, isRouteErrorResponse } from 'react-router'
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, useNavigate, useRouteError, isRouteErrorResponse, useLocation } from 'react-router'
 import type { Route } from './+types/root'
 import { RouterProvider } from '@heroui/react'
 import { Nav } from '../src/components/nav'
 import { isAuthenticated, getSessionUser } from '../src/lib/auth.server'
 import '../src/app/globals.css'
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request, context }: Route.LoaderArgs) {
   const loggedIn = isAuthenticated(request)
   const sessionUser = getSessionUser(request)
-  return { loggedIn, sessionUser }
+  const { supabase, userId, storeId } = context ?? {}
+
+  let stores: Array<{ id: string; name: string }> = []
+  try {
+    if (supabase && userId) {
+      const { data } = await supabase.from('user_stores').select('store_id').eq('user_id', userId)
+      if (data && data.length > 0) {
+        const storeIds = data.map((r: { store_id: string }) => r.store_id)
+        for (const sid of storeIds) {
+          const { data: s } = await supabase.from('stores').select('id,name').eq('id', sid).maybeSingle()
+          if (s) stores.push(s)
+        }
+      }
+    }
+  } catch {
+    // stores/user_stores未作成など — ナビ表示に影響するだけなので握りつぶす
+  }
+
+  return { loggedIn, sessionUser, stores, currentStoreId: storeId ?? null }
 }
 
 export function links(): Route.LinkDescriptors {
@@ -42,9 +60,13 @@ export function meta(): Route.MetaDescriptors {
   ]
 }
 
+const AUTH_ONLY_PATHS = ['/login', '/register', '/store-setup', '/auth/callback']
+
 export default function App({ loaderData }: Route.ComponentProps) {
-  const { loggedIn, sessionUser } = loaderData
+  const { loggedIn, sessionUser, stores, currentStoreId } = loaderData
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const hideNav = AUTH_ONLY_PATHS.some((p) => pathname === p || pathname.startsWith(p + '?'))
   return (
     <html lang="ja">
       <head>
@@ -65,8 +87,8 @@ export default function App({ loaderData }: Route.ComponentProps) {
           ラッパーで RouterOptions を明示的に無視する。
         */}
         <RouterProvider navigate={(href) => navigate(href)}>
-          <Nav isLoggedIn={loggedIn} sessionUser={sessionUser} />
-          <main className="pt-16 pb-20 sm:pb-0 sm:ml-60">
+          {!hideNav && <Nav isLoggedIn={loggedIn} sessionUser={sessionUser} stores={stores} currentStoreId={currentStoreId} />}
+          <main className={hideNav ? '' : 'pt-16 pb-20 sm:pb-0 sm:ml-60'}>
             <div className="max-w-2xl mx-auto px-0">
               <Outlet />
             </div>

@@ -1,7 +1,7 @@
 import type { Route } from '../+types/routes/api.visit.$id'
 import { getDb } from '../lib/db.server'
 import { updateVisitRecord, deleteVisitRecord } from '../../src/lib/kv.server'
-import { VALID_PASS } from '../../src/lib/auth.server'
+import { isAuthenticated } from '../../src/lib/auth.server'
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const db = getDb(context)
@@ -9,8 +9,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const body = await request.json()
 
   if (body._intent === 'delete') {
-    if (body.password !== VALID_PASS) {
-      return Response.json({ success: false, error: 'パスワードが違います' })
+    if (!isAuthenticated(request)) {
+      return Response.json({ success: false, error: '認証が必要です' }, { status: 401 })
     }
     await deleteVisitRecord(db, id)
     return Response.json({ success: true })

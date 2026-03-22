@@ -1,12 +1,16 @@
 import { type RouteConfig, index, route, layout } from '@react-router/dev/routes'
 
 export default [
-  // Public routes
+  // Auth routes
   route('login', 'routes/login.tsx'),
   route('logout', 'routes/logout.tsx'),
+  route('register', 'routes/register.tsx'),
+  route('auth/callback', 'routes/auth.callback.tsx'),
+  route('store-setup', 'routes/store-setup.tsx'),
 
   // API routes (no auth required)
   route('api/setup', 'routes/api.setup.tsx'),
+  route('api/store-switch', 'routes/api.store-switch.tsx'),
   route('api/migrate', 'routes/api.migrate.tsx'),
   route('api/seed-reservations', 'routes/api.seed-reservations.tsx'),
   route('api/favorite', 'routes/api.favorite.tsx'),
@@ -27,5 +31,10 @@ export default [
     route('reservations', 'routes/reservations.tsx'),
     route('reservations/new', 'routes/reservations.new.tsx'),
     route('favorites', 'routes/favorites.tsx'),
+    route('settings', 'routes/settings.tsx'),
+    route('settings/store', 'routes/settings.store.tsx'),
+    route('settings/alert', 'routes/settings.alert.tsx'),
+    route('settings/account', 'routes/settings.account.tsx'),
+    route('settings/members', 'routes/settings.members.tsx'),
   ]),
 ] satisfies RouteConfig
