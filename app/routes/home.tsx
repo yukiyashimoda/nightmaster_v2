@@ -11,15 +11,23 @@ import { CastRanking } from '../../src/components/cast-ranking'
 import { ReservationCard } from '../../src/components/reservation-card'
 
 export async function loader({ context }: Route.LoaderArgs) {
-  const db = getDb(context)
-  const [customers, bottles, visits, casts, reservations] = await Promise.all([
-    getCustomers(db),
-    getBottles(db),
-    getVisitRecords(db),
-    getCasts(db),
-    getReservations(db),
-  ])
-  return { customers, bottles, visits, casts, reservations }
+  console.log("home loader called")
+  try {
+    const db = getDb(context)
+    console.log("home loader db:", !!db)
+    const [customers, bottles, visits, casts, reservations] = await Promise.all([
+      getCustomers(db),
+      getBottles(db),
+      getVisitRecords(db),
+      getCasts(db),
+      getReservations(db),
+    ])
+    console.log("home loader ok, customers:", customers.length)
+    return { customers, bottles, visits, casts, reservations }
+  } catch (e) {
+    console.error("home loader error:", String(e))
+    throw e
+  }
 }
 
 export default function DashboardPage({ loaderData }: Route.ComponentProps) {
