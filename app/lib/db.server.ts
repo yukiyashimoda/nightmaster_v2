@@ -21,7 +21,10 @@ let _sql: Sql | null = null
  */
 export function getDB(): Sql {
   if (!_sql) {
-    const url = process.env.DATABASE_URL
+    // Pages Secret は process.env に入らないため globalThis も確認する
+    const url =
+      process.env.DATABASE_URL ??
+      (globalThis as Record<string, unknown>).DATABASE_URL as string | undefined
     if (!url) throw new Error('DATABASE_URL is not set')
     _sql = neon(url)
   }

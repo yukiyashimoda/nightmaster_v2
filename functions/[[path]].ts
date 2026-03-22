@@ -4,7 +4,13 @@ import * as build from '../build/server'
 
 export const onRequest = createPagesFunctionHandler({
   build,
-  getLoadContext: (context) => ({
-    cloudflare: context.env as unknown as { DATABASE_URL?: string },
-  }),
+  getLoadContext: (context) => {
+    const env = context.env as Record<string, string | undefined>
+    // Pages Secret は process.env に入らない。
+    // globalThis 経由で db.server.ts に渡す（Workers では globalThis は書き込み可能）。
+    if (env.DATABASE_URL) {
+      (globalThis as Record<string, unknown>).DATABASE_URL = env.DATABASE_URL
+    }
+    return { cloudflare: env }
+  },
 })
