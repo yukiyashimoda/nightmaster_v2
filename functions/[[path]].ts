@@ -75,9 +75,11 @@ function makeDbClient(supabaseUrl: string, anonKey: string) {
   return { from: (t: string) => new QB(t) }
 }
 
-export const onRequest = createPagesFunctionHandler({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const handler = createPagesFunctionHandler({
   build,
   getLoadContext: (context) => {
+    console.log("getLoadContext called")
     const env = context.env as Record<string, string | undefined>
     const supabase =
       env.SUPABASE_URL && env.SUPABASE_ANON_KEY
@@ -86,3 +88,13 @@ export const onRequest = createPagesFunctionHandler({
     return { cloudflare: env, supabase }
   },
 })
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const onRequest: any = async (ctx: any) => {
+  try {
+    return await handler(ctx)
+  } catch (e) {
+    console.error("onRequest error:", String(e), (e as Error)?.stack)
+    return new Response(`Worker error: ${String(e)}`, { status: 500 })
+  }
+}
