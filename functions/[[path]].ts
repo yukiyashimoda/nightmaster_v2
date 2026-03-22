@@ -92,9 +92,18 @@ const handler = createPagesFunctionHandler({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const onRequest: any = async (ctx: any) => {
   try {
-    return await handler(ctx)
+    const res = await handler(ctx)
+    if (res.status >= 500) {
+      const body = await res.text()
+      console.error("React Router 500 body:", body.slice(0, 500))
+      return new Response(body || 'empty body', {
+        status: 200,
+        headers: { 'content-type': 'text/html; charset=utf-8' },
+      })
+    }
+    return res
   } catch (e) {
     console.error("onRequest error:", String(e), (e as Error)?.stack)
-    return new Response(`Worker error: ${String(e)}`, { status: 500 })
+    return new Response(`Worker error: ${String(e)}`, { status: 200 })
   }
 }
