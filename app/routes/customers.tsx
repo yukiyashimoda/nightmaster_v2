@@ -8,33 +8,38 @@ import { CustomerSearch } from '../../src/app/customers/customer-search'
 import type { Bottle, Cast } from '../../src/types'
 
 export async function loader({ context }: Route.LoaderArgs) {
-  const db = getDb(context)
-  const [customers, casts] = await Promise.all([getCustomers(db), getCasts(db)])
-  const castMap = new Map<string, Cast>(casts.map((c) => [c.id, c]))
+  try {
+    const db = getDb(context)
+    const [customers, casts] = await Promise.all([getCustomers(db), getCasts(db)])
+    const castMap = new Map<string, Cast>(casts.map((c) => [c.id, c]))
 
-  const bottlesMap = new Map<string, Bottle[]>()
-  await Promise.all(
-    customers.map(async (c) => {
-      const bottles = await getBottlesByCustomer(db, c.id)
-      bottlesMap.set(c.id, bottles)
-    })
-  )
+    const bottlesMap = new Map<string, Bottle[]>()
+    await Promise.all(
+      customers.map(async (c) => {
+        const bottles = await getBottlesByCustomer(db, c.id)
+        bottlesMap.set(c.id, bottles)
+      })
+    )
 
-  const grouped = new Map<string, typeof customers>()
-  for (const group of hiraganaGroups) {
-    const inGroup = customers.filter((c) => getHiraganaGroup(c.ruby) === group)
-    if (inGroup.length > 0) grouped.set(group, inGroup)
-  }
+    const grouped = new Map<string, typeof customers>()
+    for (const group of hiraganaGroups) {
+      const inGroup = customers.filter((c) => getHiraganaGroup(c.ruby) === group)
+      if (inGroup.length > 0) grouped.set(group, inGroup)
+    }
 
-  const activeGroups = Array.from(grouped.keys())
+    const activeGroups = Array.from(grouped.keys())
 
-  return {
-    customers,
-    casts,
-    castMap: Object.fromEntries(castMap),
-    bottlesMap: Object.fromEntries(bottlesMap),
-    grouped: Object.fromEntries(grouped),
-    activeGroups,
+    return {
+      customers,
+      casts,
+      castMap: Object.fromEntries(castMap),
+      bottlesMap: Object.fromEntries(bottlesMap),
+      grouped: Object.fromEntries(grouped),
+      activeGroups,
+    }
+  } catch (e) {
+    console.error("customers loader error:", String(e), (e as Error)?.stack)
+    throw e
   }
 }
 
