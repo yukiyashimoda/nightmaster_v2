@@ -7,12 +7,18 @@ export const onRequest = createPagesFunctionHandler({
   build,
   getLoadContext: (context) => {
     const env = context.env as Record<string, string | undefined>
-    const supabase =
-      env.SUPABASE_URL && env.SUPABASE_ANON_KEY
-        ? createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
-            auth: { persistSession: false },
-          })
-        : null
+    console.log("getLoadContext called, SUPABASE_URL:", !!env.SUPABASE_URL, "SUPABASE_ANON_KEY:", !!env.SUPABASE_ANON_KEY)
+    let supabase = null
+    try {
+      if (env.SUPABASE_URL && env.SUPABASE_ANON_KEY) {
+        supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
+          auth: { persistSession: false },
+        })
+        console.log("Supabase client created successfully")
+      }
+    } catch (e) {
+      console.error("Failed to create Supabase client:", e)
+    }
     return { cloudflare: env, supabase }
   },
 })
