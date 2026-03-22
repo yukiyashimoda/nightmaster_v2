@@ -9,7 +9,11 @@ export const onRequest = createPagesFunctionHandler({
     // Pages Secret は process.env に入らない。
     // globalThis 経由で db.server.ts に渡す（Workers では globalThis は書き込み可能）。
     if (env.DATABASE_URL) {
-      (globalThis as Record<string, unknown>).DATABASE_URL = env.DATABASE_URL
+      try {
+        (globalThis as Record<string, unknown>).DATABASE_URL = env.DATABASE_URL
+      } catch {
+        // globalThis が書き込み不可の場合は無視（db.server.ts 側で process.env にフォールバック）
+      }
     }
     return { cloudflare: env }
   },
