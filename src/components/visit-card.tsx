@@ -155,14 +155,14 @@ export function VisitCard({ visit, casts, bottles, loggedIn }: VisitCardProps) {
         )}
 
         {openedBottles.length > 0 && (
-          <div className="text-sm flex items-center gap-1.5" style={whiteStyle}>
+          <div className="text-base flex items-center gap-1.5" style={whiteStyle}>
             <GiBrandyBottle size={14} />
             <span className={isAlert ? '' : 'text-brand-plum/50'}>開封:</span>
             <span>{openedBottles.map((b) => b.name).join(', ')}</span>
           </div>
         )}
         {usedBottles.length > 0 && (
-          <div className="text-sm flex items-center gap-1.5" style={whiteStyle}>
+          <div className="text-base flex items-center gap-1.5" style={whiteStyle}>
             <GiBrandyBottle size={14} style={{ opacity: 0.6 }} />
             <span className={isAlert ? '' : 'text-brand-plum/50'}>使用:</span>
             <span>{usedBottles.map((b) => b.name).join(', ')}</span>
@@ -237,7 +237,7 @@ export function VisitCard({ visit, casts, bottles, loggedIn }: VisitCardProps) {
             <div className="p-4">
               {/* View */}
               {mode === 'view' && (
-                <div className="space-y-3 text-sm">
+                <div className="space-y-3 text-base">
                   {isAlert && (
                     <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-brand-coral/10 border border-brand-coral/40 text-brand-coral">
                       <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -278,7 +278,7 @@ export function VisitCard({ visit, casts, bottles, loggedIn }: VisitCardProps) {
                   {/* ボトル残量 */}
                   {(openedBottles.length > 0 || usedBottles.length > 0) && (
                     <div className="pt-1 space-y-2">
-                      <span className="text-xs text-brand-plum/50">ボトル残量</span>
+                      <span className="text-sm text-brand-plum/50">ボトル残量</span>
                       <div className="space-y-2">
                         {snapshotBottles.map((bottle) => (
                           <BottleCard key={bottle.id} bottle={bottle} />
@@ -288,7 +288,7 @@ export function VisitCard({ visit, casts, bottles, loggedIn }: VisitCardProps) {
                   )}
 
                   {!loggedIn && (
-                    <p className="text-xs text-brand-plum/50 pt-2 text-center">編集・削除にはログインが必要です</p>
+                    <p className="text-sm text-brand-plum/50 pt-2 text-center">編集・削除にはログインが必要です</p>
                   )}
                 </div>
               )}
@@ -298,7 +298,7 @@ export function VisitCard({ visit, casts, bottles, loggedIn }: VisitCardProps) {
                 <>
                 <form id="visit-edit-form" onSubmit={handleEdit} className="space-y-4 pb-24">
                   {error && (
-                    <div className="p-3 rounded-lg bg-brand-coral/10 border border-brand-coral/40 text-brand-coral text-sm">{error}</div>
+                    <div className="p-3 rounded-lg bg-brand-coral/10 border border-brand-coral/40 text-brand-coral text-base">{error}</div>
                   )}
                   <div className="space-y-1.5">
                     <Label>来店日</Label>
@@ -311,8 +311,8 @@ export function VisitCard({ visit, casts, bottles, loggedIn }: VisitCardProps) {
                       {casts.map((cast) => (
                         <label key={cast.id} className={`flex items-center gap-2 px-3 py-2 cursor-pointer ${editDesignatedCastIds.includes(cast.id) ? 'bg-white' : 'hover:bg-white'}`}>
                           <input type="checkbox" checked={editDesignatedCastIds.includes(cast.id)} onChange={() => toggleCast(cast.id, 'designated')} className="accent-brand-plum" />
-                          <span className="text-sm text-brand-plum">{cast.name}</span>
-                          <span className="text-xs text-brand-plum/50">（{cast.ruby}）</span>
+                          <span className="text-base text-brand-plum">{cast.name}</span>
+                          <span className="text-sm text-brand-plum/50">（{cast.ruby}）</span>
                         </label>
                       ))}
                     </div>
@@ -324,8 +324,8 @@ export function VisitCard({ visit, casts, bottles, loggedIn }: VisitCardProps) {
                       {casts.map((cast) => (
                         <label key={cast.id} className={`flex items-center gap-2 px-3 py-2 cursor-pointer ${editInStoreCastIds.includes(cast.id) ? 'bg-white' : 'hover:bg-white'}`}>
                           <input type="checkbox" checked={editInStoreCastIds.includes(cast.id)} onChange={() => toggleCast(cast.id, 'inStore')} className="accent-brand-plum" />
-                          <span className="text-sm text-brand-plum">{cast.name}</span>
-                          <span className="text-xs text-brand-plum/50">（{cast.ruby}）</span>
+                          <span className="text-base text-brand-plum">{cast.name}</span>
+                          <span className="text-sm text-brand-plum/50">（{cast.ruby}）</span>
                         </label>
                       ))}
                     </div>
@@ -336,7 +336,7 @@ export function VisitCard({ visit, casts, bottles, loggedIn }: VisitCardProps) {
                       <button
                         type="button"
                         onClick={() => setEditIsAlert((v) => !v)}
-                        className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${editIsAlert ? 'bg-brand-coral' : 'bg-gray-200'}`}
+                        className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${editIsAlert ? 'bg-brand-coral' : 'bg-brand-beige'}`}
                       >
                         <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${editIsAlert ? 'translate-x-5' : 'translate-x-0'}`} />
                       </button>
@@ -352,7 +352,7 @@ export function VisitCard({ visit, casts, bottles, loggedIn }: VisitCardProps) {
                           onChange={(e) => setEditAlertReason(e.target.value)}
                           placeholder="要注意の理由を入力（例：無断キャンセル、支払いトラブルなど）"
                           rows={3}
-                          className="w-full text-sm rounded-md border border-brand-coral/40 bg-white px-3 py-2 text-brand-plum placeholder:text-brand-plum/50 outline-none focus:ring-1 focus:ring-brand-coral/40 resize-none"
+                          className="w-full text-base rounded-md border border-brand-coral/40 bg-white px-3 py-2 text-brand-plum placeholder:text-brand-plum/50 outline-none focus:ring-1 focus:ring-brand-coral/40 resize-none"
                         />
                       </div>
                     )}
@@ -376,7 +376,7 @@ export function VisitCard({ visit, casts, bottles, loggedIn }: VisitCardProps) {
               {mode === 'delete' && (
                 <div className="space-y-4">
                   {error && (
-                    <div className="p-3 rounded-lg bg-brand-coral/10 border border-brand-coral/40 text-brand-coral text-sm">{error}</div>
+                    <div className="p-3 rounded-lg bg-brand-coral/10 border border-brand-coral/40 text-brand-coral text-base">{error}</div>
                   )}
                   <p className="text-sm text-brand-plum">
                     <span className="font-semibold">{formatDate(visit.visitDate)}</span> の来店記録を削除しますか？この操作は元に戻せません。

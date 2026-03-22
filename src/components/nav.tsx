@@ -40,7 +40,7 @@ export function Nav({ isLoggedIn, sessionUser }: NavProps) {
             to={href}
             onClick={() => setSidebarOpen(false)}
             className={cn(
-              'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+              'flex items-center gap-3 px-3 py-2.5 rounded-lg text-base font-medium transition-colors',
               active
                 ? 'bg-brand-plum text-white'
                 : 'text-brand-plum/70 hover:bg-brand-beige/60 hover:text-brand-plum'
@@ -59,7 +59,7 @@ export function Nav({ isLoggedIn, sessionUser }: NavProps) {
       {isLoggedIn ? (
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-brand-plum/70 hover:bg-brand-beige/60 hover:text-brand-plum transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-base font-medium text-brand-plum/70 hover:bg-brand-beige/60 hover:text-brand-plum transition-colors"
         >
           <LogOut className="h-4 w-4" />
           ログアウト
@@ -68,7 +68,7 @@ export function Nav({ isLoggedIn, sessionUser }: NavProps) {
         <Link
           to="/login"
           onClick={() => setSidebarOpen(false)}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-brand-plum/70 hover:bg-brand-beige/60 hover:text-brand-plum transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-base font-medium text-brand-plum/70 hover:bg-brand-beige/60 hover:text-brand-plum transition-colors"
         >
           <LogIn className="h-4 w-4" />
           ログイン
@@ -84,8 +84,8 @@ export function Nav({ isLoggedIn, sessionUser }: NavProps) {
           <User className="h-4 w-4 text-white" />
         </div>
         <div className="min-w-0">
-          <p className="text-xs text-brand-plum/50">ログイン中</p>
-          <p className="text-sm font-semibold text-brand-plum truncate">
+          <p className="text-sm text-brand-plum/50">ログイン中</p>
+          <p className="text-base font-semibold text-brand-plum truncate">
             {sessionUser ?? 'ゲスト'}
           </p>
         </div>

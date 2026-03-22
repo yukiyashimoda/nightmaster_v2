@@ -64,33 +64,33 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
         <Link to="/customers" className="rounded-xl bg-white border border-brand-beige shadow-sm p-4 hover:border-brand-plum/30 transition-colors">
           <div className="flex items-center gap-2 mb-2">
             <FaAddressCard size={16} className="text-brand-plum/50" />
-            <p className="text-xs text-brand-plum/50">総顧客数</p>
+            <p className="text-sm text-brand-plum/50">総顧客数</p>
           </div>
-          <p className="text-2xl font-bold text-brand-plum">{customers.length}<span className="text-sm font-normal ml-1">名</span></p>
+          <p className="text-2xl font-bold text-brand-plum">{customers.length}<span className="text-sm font-medium ml-1">名</span></p>
         </Link>
 
         <Link to="/customers" className="rounded-xl bg-white border border-brand-beige shadow-sm p-4 hover:border-brand-plum/30 transition-colors">
           <div className="flex items-center gap-2 mb-2">
             <TrendingUp size={16} className="text-brand-plum/50" />
-            <p className="text-xs text-brand-plum/50">30日以内来店</p>
+            <p className="text-sm text-brand-plum/50">30日以内来店</p>
           </div>
-          <p className="text-2xl font-bold text-brand-plum">{activeCustomers.length}<span className="text-sm font-normal ml-1">名</span></p>
+          <p className="text-2xl font-bold text-brand-plum">{activeCustomers.length}<span className="text-sm font-medium ml-1">名</span></p>
         </Link>
 
         <Link to="/customers" className="rounded-xl bg-white border border-brand-beige shadow-sm p-4 hover:border-brand-plum/30 transition-colors">
           <div className="flex items-center gap-2 mb-2">
             <GiBrandyBottle size={16} className="text-brand-plum/50" />
-            <p className="text-xs text-brand-plum/50">ボトルキープ数</p>
+            <p className="text-sm text-brand-plum/50">ボトルキープ数</p>
           </div>
-          <p className="text-2xl font-bold text-brand-plum">{bottles.length}<span className="text-sm font-normal ml-1">本</span></p>
+          <p className="text-2xl font-bold text-brand-plum">{bottles.length}<span className="text-sm font-medium ml-1">本</span></p>
         </Link>
 
         <Link to="/casts" className="rounded-xl bg-white border border-brand-beige shadow-sm p-4 hover:border-brand-plum/30 transition-colors">
           <div className="flex items-center gap-2 mb-2">
             <GiAmpleDress size={16} className="text-brand-plum/50" />
-            <p className="text-xs text-brand-plum/50">キャスト数</p>
+            <p className="text-sm text-brand-plum/50">キャスト数</p>
           </div>
-          <p className="text-2xl font-bold text-brand-plum">{casts.length}<span className="text-sm font-normal ml-1">名</span></p>
+          <p className="text-2xl font-bold text-brand-plum">{casts.length}<span className="text-sm font-medium ml-1">名</span></p>
         </Link>
       </div>
 
@@ -145,7 +145,7 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-brand-plum truncate">{c.name}</p>
                   {c.alertReason && (
-                    <p className="text-xs text-brand-coral/80 truncate">{c.alertReason}</p>
+                    <p className="text-sm text-brand-coral/80 truncate">{c.alertReason}</p>
                   )}
                 </div>
                 <AlertTriangle className="h-4 w-4 text-brand-coral shrink-0" />
@@ -182,7 +182,7 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-brand-plum truncate">{customer?.name ?? '不明'}</p>
-                    <p className="text-xs text-brand-plum/50">
+                    <p className="text-sm text-brand-plum/50">
                       {formatDate(v.visitDate)}
                       {designatedNames && ` ・ ${designatedNames}`}
                     </p>
@@ -204,14 +204,14 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
           <div className="grid grid-cols-2 gap-3">
             <Link
               to="/customers/new"
-              className="flex items-center justify-center gap-2 p-4 rounded-xl bg-brand-plum text-white font-medium text-sm shadow-sm hover:bg-brand-plum/90 transition-colors"
+              className="flex items-center justify-center gap-2 p-4 rounded-xl bg-brand-plum text-white font-medium text-base shadow-sm hover:bg-brand-plum/90 transition-colors"
             >
               <FaAddressCard size={16} />
               新規顧客登録
             </Link>
             <Link
               to="/customers"
-              className="flex items-center justify-center gap-2 p-4 rounded-xl bg-white border border-brand-beige text-brand-plum font-medium text-sm shadow-sm hover:border-brand-plum/30 transition-colors"
+              className="flex items-center justify-center gap-2 p-4 rounded-xl bg-white border border-brand-beige text-brand-plum font-medium text-base shadow-sm hover:border-brand-plum/30 transition-colors"
             >
               <FaAddressCard size={16} />
               顧客一覧を見る

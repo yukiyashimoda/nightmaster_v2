@@ -66,7 +66,7 @@ function CastPicker({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="名前・ふりがなで検索"
-            className="w-full pl-9 pr-3 py-2 text-sm bg-transparent outline-none text-brand-plum placeholder:text-brand-plum/50"
+            className="w-full pl-9 pr-3 py-2 text-base bg-transparent outline-none text-brand-plum placeholder:text-brand-plum/50"
           />
         </div>
         <div className="max-h-36 overflow-y-auto border-t border-brand-beige">
@@ -78,8 +78,8 @@ function CastPicker({
                 <span className={`w-4 h-4 flex items-center justify-center rounded border shrink-0 ${sel ? 'bg-brand-plum border-brand-plum' : 'border-brand-beige'}`}>
                   {sel && <Check className="h-3 w-3 text-white" />}
                 </span>
-                <span className="text-sm text-brand-plum">{c.name}</span>
-                <span className="text-xs text-brand-plum/50">({c.ruby})</span>
+                <span className="text-base text-brand-plum">{c.name}</span>
+                <span className="text-sm text-brand-plum/50">({c.ruby})</span>
               </button>
             )
           })}
@@ -203,7 +203,7 @@ export function ReservationCard({ reservation: r, customerMap, customers, castMa
         onClick={openModal}
         className={`rounded-lg border p-3 space-y-1.5 cursor-pointer transition-colors ${
           isVisited
-            ? 'bg-gray-50 border-gray-200 opacity-60 hover:opacity-80'
+            ? 'bg-brand-beige/40 border-brand-beige opacity-60 hover:opacity-80'
             : 'bg-white border-brand-beige hover:bg-brand-beige/20'
         }`}
       >
@@ -211,13 +211,13 @@ export function ReservationCard({ reservation: r, customerMap, customers, castMa
           <div className="flex items-center gap-2">
             <Clock className="h-3.5 w-3.5 text-brand-plum/50 shrink-0" />
             {showDate && <span className="text-sm font-semibold text-brand-plum">{r.date.replace(/-/g, '/')}</span>}
-            <span className="text-sm font-semibold text-brand-plum">{r.time}</span>
-            <span className="text-sm text-brand-plum">{r.partySize}名</span>
+            <span className="text-base font-semibold text-brand-plum">{r.time}</span>
+            <span className="text-base text-brand-plum">{r.partySize}名</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="flex gap-1">
               {r.hasDesignation && (
-                <span className="text-[10px] bg-brand-plum/10 text-brand-plum px-1.5 py-0.5 rounded-full font-medium">
+                <span className="text-xs bg-brand-plum/10 text-brand-plum px-1.5 py-0.5 rounded-full font-medium">
                   指名{r.designatedCastIds.length > 0 && '：'}
                   {r.designatedCastIds.map((cid, i) => {
                     const c = castMap.get(cid)
@@ -232,7 +232,7 @@ export function ReservationCard({ reservation: r, customerMap, customers, castMa
                 </span>
               )}
               {r.isAccompanied && (
-                <span className="text-[10px] bg-brand-gold/10 text-brand-gold px-1.5 py-0.5 rounded-full font-medium">
+                <span className="text-xs bg-brand-gold/10 text-brand-gold px-1.5 py-0.5 rounded-full font-medium">
                   同伴{r.accompaniedCastIds.length > 0 && '：'}
                   {r.accompaniedCastIds.map((cid, i) => {
                     const c = castMap.get(cid)
@@ -247,14 +247,14 @@ export function ReservationCard({ reservation: r, customerMap, customers, castMa
                 </span>
               )}
               {r.priceType === 'party' && (
-                <span className="text-[10px] bg-brand-coral/10 text-brand-coral px-1.5 py-0.5 rounded-full font-medium">パーティー</span>
+                <span className="text-xs bg-brand-coral/10 text-brand-coral px-1.5 py-0.5 rounded-full font-medium">パーティー</span>
               )}
             </div>
             <ChevronRight className="h-3.5 w-3.5 text-brand-plum/30 shrink-0" />
           </div>
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${r.customerType === 'existing' ? 'bg-brand-beige text-brand-plum/70' : 'bg-gray-100 text-gray-500'}`}>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${r.customerType === 'existing' ? 'bg-brand-beige text-brand-plum/70' : 'bg-brand-beige/60 text-brand-plum/60'}`}>
             {r.customerType === 'existing' ? '既存' : '初来店'}
           </span>
           {reservationCustomers.map((c) => (
@@ -262,17 +262,17 @@ export function ReservationCard({ reservation: r, customerMap, customers, castMa
               key={c.id}
               to={`/customers/${c.id}`}
               onClick={(e) => e.stopPropagation()}
-              className="text-xs text-brand-plum font-medium hover:underline"
+              className="text-sm text-brand-plum font-medium hover:underline"
             >
               {c.name}
             </Link>
           ))}
-          {r.customerType === 'new' && r.guestName && <span className="text-xs text-brand-plum/70">{r.guestName}</span>}
+          {r.customerType === 'new' && r.guestName && <span className="text-sm text-brand-plum/70">{r.guestName}</span>}
           {reservationCustomers.map((c) => (bottlesByCustomer.get(c.id) ?? 0) > 0 && (
-            <span key={`bottle-${c.id}`} className="text-[11px] text-brand-gold font-medium">🍾 {bottlesByCustomer.get(c.id)}本</span>
+            <span key={`bottle-${c.id}`} className="text-xs text-brand-gold font-medium">🍾 {bottlesByCustomer.get(c.id)}本</span>
           ))}
         </div>
-        {r.memo && <p className="text-[11px] text-brand-plum/50 border-t border-brand-beige pt-1.5 line-clamp-1">{r.memo}</p>}
+        {r.memo && <p className="text-xs text-brand-plum/50 border-t border-brand-beige pt-1.5 line-clamp-1">{r.memo}</p>}
       </div>
 
       {/* モーダル */}
@@ -327,12 +327,12 @@ export function ReservationCard({ reservation: r, customerMap, customers, castMa
             <div className="p-4">
               {/* ── 詳細表示 ── */}
               {mode === 'view' && (
-                <div className="space-y-3 text-sm">
+                <div className="space-y-3 text-base">
                   <Row label="日時">{r.date.replace(/-/g, '/')} {r.time}</Row>
                   <Row label="人数">{r.partySize}名</Row>
                   {r.phone && <Row label="連絡先"><span className="flex items-center gap-1"><Phone className="h-3.5 w-3.5 text-brand-plum/50" />{r.phone}</span></Row>}
                   <Row label="来店区分">
-                    <span className={`text-[11px] px-1.5 py-0.5 rounded-full font-medium ${r.customerType === 'existing' ? 'bg-brand-beige text-brand-plum/70' : 'bg-gray-100 text-gray-500'}`}>
+                    <span className={`text-[11px] px-1.5 py-0.5 rounded-full font-medium ${r.customerType === 'existing' ? 'bg-brand-beige text-brand-plum/70' : 'bg-brand-beige/60 text-brand-plum/60'}`}>
                       {r.customerType === 'existing' ? '既存顧客' : '初来店'}
                     </span>
                     {reservationCustomers.map((c, i) => (
@@ -398,7 +398,7 @@ export function ReservationCard({ reservation: r, customerMap, customers, castMa
                       type="button"
                       onClick={toggleVisited}
                       disabled={visitedLoading}
-                      className={`relative w-12 h-6 rounded-full transition-colors shrink-0 ${isVisited ? 'bg-green-500' : 'bg-gray-200'} disabled:opacity-50`}
+                      className={`relative w-12 h-6 rounded-full transition-colors shrink-0 ${isVisited ? 'bg-green-500' : 'bg-brand-beige'} disabled:opacity-50`}
                     >
                       <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${isVisited ? 'translate-x-6' : 'translate-x-0'}`} />
                     </button>
@@ -450,7 +450,7 @@ export function ReservationCard({ reservation: r, customerMap, customers, castMa
                       <select
                         value={editIsAccompanied ? 'accompanied' : 'normal'}
                         onChange={(e) => { const v = e.target.value === 'accompanied'; setEditIsAccompanied(v); if (!v) setEditAccompaniedCastIds([]) }}
-                        className="w-full rounded-lg border border-brand-beige bg-white px-3 py-2.5 text-sm text-brand-plum outline-none"
+                        className="w-full rounded-lg border border-brand-beige bg-white px-3 py-2.5 text-base text-brand-plum outline-none"
                       >
                         <option value="normal">通常来店</option>
                         <option value="accompanied">同伴</option>
@@ -484,7 +484,7 @@ export function ReservationCard({ reservation: r, customerMap, customers, castMa
                           )}
                           <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-plum/50" />
-                            <input type="text" value={customerQuery} onChange={(e) => setCustomerQuery(e.target.value)} placeholder="名前・ふりがなで検索" className="w-full pl-9 pr-3 py-2 text-sm bg-transparent outline-none text-brand-plum placeholder:text-brand-plum/50" />
+                            <input type="text" value={customerQuery} onChange={(e) => setCustomerQuery(e.target.value)} placeholder="名前・ふりがなで検索" className="w-full pl-9 pr-3 py-2 text-base bg-transparent outline-none text-brand-plum placeholder:text-brand-plum/50" />
                           </div>
                           <div className="max-h-40 overflow-y-auto border-t border-brand-beige">
                             {filteredCustomers.map((c) => {
@@ -495,8 +495,8 @@ export function ReservationCard({ reservation: r, customerMap, customers, castMa
                                   <span className={`w-4 h-4 flex items-center justify-center rounded border shrink-0 ${isSel ? 'bg-brand-plum border-brand-plum' : 'border-brand-beige'}`}>
                                     {isSel && <Check className="h-3 w-3 text-white" />}
                                   </span>
-                                  <span className="text-sm text-brand-plum">{c.name}</span>
-                                  <span className="text-xs text-brand-plum/50">({c.ruby})</span>
+                                  <span className="text-base text-brand-plum">{c.name}</span>
+                                  <span className="text-sm text-brand-plum/50">({c.ruby})</span>
                                 </button>
                               )
                             })}
@@ -571,8 +571,8 @@ export function ReservationCard({ reservation: r, customerMap, customers, castMa
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-start gap-2">
-      <span className="text-brand-plum/50 w-16 shrink-0 text-xs pt-0.5">{label}</span>
-      <span className="text-brand-plum text-sm">{children}</span>
+      <span className="text-brand-plum/50 w-16 shrink-0 text-sm">{label}</span>
+      <span className="text-brand-plum text-base">{children}</span>
     </div>
   )
 }
@@ -583,17 +583,17 @@ function Req() {
 
 function ErrorBox({ children }: { children: React.ReactNode }) {
   return (
-    <div className="p-3 rounded-lg bg-brand-coral/10 border border-brand-coral/40 text-brand-coral text-sm">{children}</div>
+    <div className="p-3 rounded-lg bg-brand-coral/10 border border-brand-coral/40 text-brand-coral text-base">{children}</div>
   )
 }
 
 function ToggleSwitch({ value, onChange, label, activeLabel }: { value: boolean; onChange: (v: boolean) => void; label: string; activeLabel: string }) {
   return (
     <div className="flex items-center gap-3">
-      <button type="button" onClick={() => onChange(!value)} className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${value ? 'bg-brand-plum' : 'bg-gray-200'}`}>
+      <button type="button" onClick={() => onChange(!value)} className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${value ? 'bg-brand-plum' : 'bg-brand-beige'}`}>
         <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${value ? 'translate-x-5' : 'translate-x-0'}`} />
       </button>
-      <span className="text-sm text-brand-plum">{value ? activeLabel : label}</span>
+      <span className="text-base text-brand-plum">{value ? activeLabel : label}</span>
     </div>
   )
 }

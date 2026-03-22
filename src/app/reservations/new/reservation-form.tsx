@@ -161,7 +161,7 @@ export function ReservationForm({ customers, casts, bottlesByCustomer }: Reserva
       <button
         type="button"
         onClick={() => onChange(!value)}
-        className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${value ? activeColor : 'bg-gray-200'}`}
+        className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${value ? activeColor : 'bg-brand-beige'}`}
       >
         <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${value ? 'translate-x-5' : 'translate-x-0'}`} />
       </button>

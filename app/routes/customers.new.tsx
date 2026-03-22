@@ -53,7 +53,7 @@ export default function NewCustomerPage({ loaderData }: Route.ComponentProps) {
       {/* Header */}
       <div className="sticky top-14 z-20 bg-white/95 backdrop-blur border-b border-stone-200 px-4 py-3 flex items-center gap-3">
         <Link to="/">
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-brand-plum/60">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>

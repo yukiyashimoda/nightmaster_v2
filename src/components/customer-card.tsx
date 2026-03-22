@@ -28,7 +28,7 @@ export function CustomerCard({ customer, bottles, designatedCastRuby }: Customer
       >
         {/* Avatar */}
         <div className={cn(
-          'w-10 h-10 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 overflow-hidden',
+          'w-10 h-10 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 overflow-hidden',
           customer.isAlert ? 'bg-brand-coral/20 text-brand-coral' : designatedCastRuby ? 'bg-brand-coral text-white' : 'bg-brand-gold text-brand-plum'
         )}>
           {avatarLabel}
@@ -37,20 +37,20 @@ export function CustomerCard({ customer, bottles, designatedCastRuby }: Customer
         {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-normal text-brand-plum truncate">
+            <span className="font-medium text-base text-brand-plum truncate">
               {customer.name}
             </span>
             {customer.nickname && (
-              <span className="text-xs text-brand-plum/50 truncate">
+              <span className="text-sm text-brand-plum/50 truncate">
                 ({customer.nickname})
               </span>
             )}
           </div>
-          <div className="text-xs text-brand-plum/50">{customer.ruby}</div>
+          <div className="text-sm text-brand-plum/50">{customer.ruby}</div>
           <div className="flex items-center gap-1.5 mt-0.5">
             <Calendar className={cn('h-3 w-3', old ? 'text-brand-gold' : 'text-brand-plum/50')} />
             <span className={cn(
-              'text-xs rounded px-1',
+              'text-sm rounded px-1',
               old
                 ? 'text-brand-coral font-bold bg-brand-coral/10'
                 : 'text-brand-plum/60'
