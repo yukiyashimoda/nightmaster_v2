@@ -81,7 +81,12 @@ const handler = createPagesFunctionHandler({
   getLoadContext: (context) => {
     console.log("getLoadContext called")
     const env = context.env as Record<string, string | undefined>
-    return { cloudflare: env, supabase: null }
+    const hasSupabase = !!(env.SUPABASE_URL && env.SUPABASE_ANON_KEY)
+    console.log("hasSupabase:", hasSupabase)
+    const supabase = hasSupabase
+      ? makeDbClient(env.SUPABASE_URL!, env.SUPABASE_ANON_KEY!)
+      : null
+    return { cloudflare: env, supabase }
   },
 })
 
