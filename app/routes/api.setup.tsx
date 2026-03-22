@@ -1,10 +1,10 @@
-import { getSupabase } from '../lib/db.server'
+import { getDb } from '../lib/db.server'
 import { mockCustomers, mockBottles, mockCasts, mockVisitRecords } from '../../src/lib/mock-data'
 import type { Route } from '../+types/routes/api.setup'
 
 export async function loader({ context }: Route.LoaderArgs) {
   try {
-    const db = getSupabase(context)
+    const db = getDb(context)
     if (!db) return Response.json({ ok: false, error: 'Supabase not configured' }, { status: 500 })
 
     const { count } = await db.from('customers').select('*', { count: 'exact', head: true })

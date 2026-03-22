@@ -1,11 +1,11 @@
 import type { Route } from '../+types/routes/favorites'
-import { getSupabase } from '../lib/db.server'
+import { getDb } from '../lib/db.server'
 import { getCustomers, getBottlesByCustomer, getCasts } from '../../src/lib/kv.server'
 import { CustomerCard } from '../../src/components/customer-card'
 import type { Bottle, Cast } from '../../src/types'
 
 export async function loader({ context }: Route.LoaderArgs) {
-  const db = getSupabase(context)
+  const db = getDb(context)
   const [customers, casts] = await Promise.all([getCustomers(db), getCasts(db)])
   const castMap = new Map<string, Cast>(casts.map((c) => [c.id, c]))
 

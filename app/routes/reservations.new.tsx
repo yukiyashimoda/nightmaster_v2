@@ -1,11 +1,11 @@
 import type { Route } from '../+types/routes/reservations.new'
-import { getSupabase } from '../lib/db.server'
+import { getDb } from '../lib/db.server'
 import { getCustomers, getCasts, getBottles, createReservation } from '../../src/lib/kv.server'
 import { getSessionUser } from '../../src/lib/auth.server'
 import { ReservationForm } from '../../src/app/reservations/new/reservation-form'
 
 export async function loader({ context }: Route.LoaderArgs) {
-  const db = getSupabase(context)
+  const db = getDb(context)
   const [customers, casts, bottles] = await Promise.all([
     getCustomers(db),
     getCasts(db),
@@ -28,7 +28,7 @@ export async function loader({ context }: Route.LoaderArgs) {
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
-  const db = getSupabase(context)
+  const db = getDb(context)
   try {
     const body = await request.json()
     const updatedBy = getSessionUser(request) ?? ''

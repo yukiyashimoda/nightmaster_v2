@@ -1,10 +1,10 @@
 import type { Route } from '../+types/routes/api.visit.$id'
-import { getSupabase } from '../lib/db.server'
+import { getDb } from '../lib/db.server'
 import { updateVisitRecord, deleteVisitRecord } from '../../src/lib/kv.server'
 import { VALID_PASS } from '../../src/lib/auth.server'
 
 export async function action({ request, params, context }: Route.ActionArgs) {
-  const db = getSupabase(context)
+  const db = getDb(context)
   const { id } = params
   const body = await request.json()
 

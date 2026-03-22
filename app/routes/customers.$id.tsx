@@ -1,6 +1,6 @@
 import type { Route } from '../+types/routes/customers.$id'
 import { Link } from 'react-router'
-import { getSupabase } from '../lib/db.server'
+import { getDb } from '../lib/db.server'
 import {
   getCustomer,
   getBottlesByCustomer,
@@ -33,7 +33,7 @@ import { GiBrandyBottle } from 'react-icons/gi'
 import { FaAddressCard } from 'react-icons/fa'
 
 export async function loader({ params, context }: Route.LoaderArgs) {
-  const db = getSupabase(context)
+  const db = getDb(context)
   const { id } = params
   const [customer, bottles, visits, reservations, casts, allCustomers, allBottles] = await Promise.all([
     getCustomer(db, id),
@@ -77,11 +77,11 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   if (body._intent === 'delete') {
     const { VALID_PASS } = await import('../../src/lib/auth.server')
     const { deleteCustomer } = await import('../../src/lib/kv.server')
-    const { getSupabase: getSupabaseInAction } = await import('../lib/db.server')
+    const { getDb: getDbInAction } = await import('../lib/db.server')
     if (body.password !== VALID_PASS) {
       return Response.json({ success: false, error: 'パスワードが違います' })
     }
-    const db = getSupabaseInAction(context)
+    const db = getDbInAction(context)
     await deleteCustomer(db, id)
     return Response.json({ success: true })
   }

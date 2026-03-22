@@ -2,7 +2,7 @@ import type { Route } from '../+types/routes/casts.$id'
 import { Link } from 'react-router'
 import { ArrowLeft, Calendar, CalendarDays, Edit } from 'lucide-react'
 import { Button } from '../../src/components/ui/button'
-import { getSupabase } from '../lib/db.server'
+import { getDb } from '../lib/db.server'
 import {
   getCast,
   getVisitRecordsByCast,
@@ -19,7 +19,7 @@ import { formatEditedBy } from '../../src/lib/utils'
 import { DeleteConfirmButton } from '../../src/components/delete-confirm-button'
 
 export async function loader({ params, context }: Route.LoaderArgs) {
-  const db = getSupabase(context)
+  const db = getDb(context)
   const { id } = params
   const [cast, visits, inStoreVisits, reservations, customers, allCasts, bottles] = await Promise.all([
     getCast(db, id),
@@ -115,11 +115,11 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   if (body._intent === 'delete') {
     const { VALID_PASS } = await import('../../src/lib/auth.server')
     const { deleteCast } = await import('../../src/lib/kv.server')
-    const { getSupabase: getSupabaseInAction } = await import('../lib/db.server')
+    const { getDb: getDbInAction } = await import('../lib/db.server')
     if (body.password !== VALID_PASS) {
       return Response.json({ success: false, error: 'パスワードが違います' })
     }
-    const db = getSupabaseInAction(context)
+    const db = getDbInAction(context)
     await deleteCast(db, params.id)
     return Response.json({ success: true })
   }

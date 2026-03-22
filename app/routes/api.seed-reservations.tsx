@@ -1,10 +1,10 @@
-import { getSupabase } from '../lib/db.server'
+import { getDb } from '../lib/db.server'
 import { mockReservations } from '../../src/lib/mock-data'
 import type { Route } from '../+types/routes/api.seed-reservations'
 
 export async function loader({ context }: Route.LoaderArgs) {
   try {
-    const db = getSupabase(context)
+    const db = getDb(context)
     if (!db) return Response.json({ ok: false, error: 'Supabase not configured' }, { status: 500 })
     let inserted = 0
     for (const r of mockReservations) {

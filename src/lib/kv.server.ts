@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '../../app/lib/db.server'
+import type { DbClient } from '../../app/lib/db.server'
 import type { Customer, Bottle, Cast, VisitRecord, Reservation } from '@/types'
 import {
   mockCustomers,
@@ -114,21 +114,21 @@ function toReservation(r: any): Reservation {
 
 // ─── Customer CRUD ────────────────────────────────────────────────────────────
 
-export async function getCustomers(db: SupabaseClient | null): Promise<Customer[]> {
+export async function getCustomers(db: DbClient | null): Promise<Customer[]> {
   if (!db) return Array.from(store.customers.values()).sort((a, b) => a.ruby.localeCompare(b.ruby, 'ja'))
   const { data, error } = await db.from('customers').select('*').order('ruby')
   if (error) throw error
   return (data ?? []).map(toCustomer)
 }
 
-export async function getCustomer(db: SupabaseClient | null, id: string): Promise<Customer | null> {
+export async function getCustomer(db: DbClient | null, id: string): Promise<Customer | null> {
   if (!db) return store.customers.get(id) ?? null
   const { data, error } = await db.from('customers').select('*').eq('id', id).maybeSingle()
   if (error) throw error
   return data ? toCustomer(data) : null
 }
 
-export async function createCustomer(db: SupabaseClient | null, data: Omit<Customer, 'id' | 'updatedAt'>): Promise<Customer> {
+export async function createCustomer(db: DbClient | null, data: Omit<Customer, 'id' | 'updatedAt'>): Promise<Customer> {
   const id = generateId()
   const updatedAt = new Date().toISOString()
   if (!db) {
@@ -150,7 +150,7 @@ export async function createCustomer(db: SupabaseClient | null, data: Omit<Custo
   return toCustomer(row)
 }
 
-export async function updateCustomer(db: SupabaseClient | null, id: string, data: Partial<Omit<Customer, 'id'>>): Promise<Customer | null> {
+export async function updateCustomer(db: DbClient | null, id: string, data: Partial<Omit<Customer, 'id'>>): Promise<Customer | null> {
   if (!db) {
     const existing = store.customers.get(id)
     if (!existing) return null
@@ -175,7 +175,7 @@ export async function updateCustomer(db: SupabaseClient | null, id: string, data
   return toCustomer(row)
 }
 
-export async function deleteCustomer(db: SupabaseClient | null, id: string): Promise<boolean> {
+export async function deleteCustomer(db: DbClient | null, id: string): Promise<boolean> {
   if (!db) return store.customers.delete(id)
   const { error } = await db.from('customers').delete().eq('id', id)
   if (error) throw error
@@ -184,28 +184,28 @@ export async function deleteCustomer(db: SupabaseClient | null, id: string): Pro
 
 // ─── Bottle CRUD ──────────────────────────────────────────────────────────────
 
-export async function getBottles(db: SupabaseClient | null): Promise<Bottle[]> {
+export async function getBottles(db: DbClient | null): Promise<Bottle[]> {
   if (!db) return Array.from(store.bottles.values())
   const { data, error } = await db.from('bottles').select('*')
   if (error) throw error
   return (data ?? []).map(toBottle)
 }
 
-export async function getBottlesByCustomer(db: SupabaseClient | null, customerId: string): Promise<Bottle[]> {
+export async function getBottlesByCustomer(db: DbClient | null, customerId: string): Promise<Bottle[]> {
   if (!db) return Array.from(store.bottles.values()).filter((b) => b.customerId === customerId)
   const { data, error } = await db.from('bottles').select('*').eq('customer_id', customerId)
   if (error) throw error
   return (data ?? []).map(toBottle)
 }
 
-export async function getBottle(db: SupabaseClient | null, id: string): Promise<Bottle | null> {
+export async function getBottle(db: DbClient | null, id: string): Promise<Bottle | null> {
   if (!db) return store.bottles.get(id) ?? null
   const { data, error } = await db.from('bottles').select('*').eq('id', id).maybeSingle()
   if (error) throw error
   return data ? toBottle(data) : null
 }
 
-export async function createBottle(db: SupabaseClient | null, data: Omit<Bottle, 'id'>): Promise<Bottle> {
+export async function createBottle(db: DbClient | null, data: Omit<Bottle, 'id'>): Promise<Bottle> {
   const id = generateId()
   if (!db) {
     const bottle: Bottle = { ...data, id }
@@ -220,7 +220,7 @@ export async function createBottle(db: SupabaseClient | null, data: Omit<Bottle,
   return toBottle(row)
 }
 
-export async function updateBottle(db: SupabaseClient | null, id: string, data: Partial<Omit<Bottle, 'id'>>): Promise<Bottle | null> {
+export async function updateBottle(db: DbClient | null, id: string, data: Partial<Omit<Bottle, 'id'>>): Promise<Bottle | null> {
   if (!db) {
     const existing = store.bottles.get(id)
     if (!existing) return null
@@ -238,7 +238,7 @@ export async function updateBottle(db: SupabaseClient | null, id: string, data: 
   return toBottle(row)
 }
 
-export async function deleteBottle(db: SupabaseClient | null, id: string): Promise<boolean> {
+export async function deleteBottle(db: DbClient | null, id: string): Promise<boolean> {
   if (!db) return store.bottles.delete(id)
   const { error } = await db.from('bottles').delete().eq('id', id)
   if (error) throw error
@@ -247,21 +247,21 @@ export async function deleteBottle(db: SupabaseClient | null, id: string): Promi
 
 // ─── Cast CRUD ────────────────────────────────────────────────────────────────
 
-export async function getCasts(db: SupabaseClient | null): Promise<Cast[]> {
+export async function getCasts(db: DbClient | null): Promise<Cast[]> {
   if (!db) return Array.from(store.casts.values()).sort((a, b) => a.ruby.localeCompare(b.ruby, 'ja'))
   const { data, error } = await db.from('casts').select('*').order('ruby')
   if (error) throw error
   return (data ?? []).map(toCast)
 }
 
-export async function getCast(db: SupabaseClient | null, id: string): Promise<Cast | null> {
+export async function getCast(db: DbClient | null, id: string): Promise<Cast | null> {
   if (!db) return store.casts.get(id) ?? null
   const { data, error } = await db.from('casts').select('*').eq('id', id).maybeSingle()
   if (error) throw error
   return data ? toCast(data) : null
 }
 
-export async function createCast(db: SupabaseClient | null, data: Omit<Cast, 'id' | 'updatedAt'>): Promise<Cast> {
+export async function createCast(db: DbClient | null, data: Omit<Cast, 'id' | 'updatedAt'>): Promise<Cast> {
   const id = generateId()
   const updatedAt = new Date().toISOString()
   if (!db) {
@@ -277,7 +277,7 @@ export async function createCast(db: SupabaseClient | null, data: Omit<Cast, 'id
   return toCast(row)
 }
 
-export async function updateCast(db: SupabaseClient | null, id: string, data: Partial<Omit<Cast, 'id' | 'updatedAt'>>): Promise<Cast | null> {
+export async function updateCast(db: DbClient | null, id: string, data: Partial<Omit<Cast, 'id' | 'updatedAt'>>): Promise<Cast | null> {
   if (!db) {
     const existing = store.casts.get(id)
     if (!existing) return null
@@ -296,7 +296,7 @@ export async function updateCast(db: SupabaseClient | null, id: string, data: Pa
   return toCast(row)
 }
 
-export async function deleteCast(db: SupabaseClient | null, id: string): Promise<boolean> {
+export async function deleteCast(db: DbClient | null, id: string): Promise<boolean> {
   if (!db) return store.casts.delete(id)
   const { error } = await db.from('casts').delete().eq('id', id)
   if (error) throw error
@@ -305,35 +305,35 @@ export async function deleteCast(db: SupabaseClient | null, id: string): Promise
 
 // ─── VisitRecord CRUD ─────────────────────────────────────────────────────────
 
-export async function getVisitRecords(db: SupabaseClient | null): Promise<VisitRecord[]> {
+export async function getVisitRecords(db: DbClient | null): Promise<VisitRecord[]> {
   if (!db) return Array.from(store.visitRecords.values()).sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime())
   const { data, error } = await db.from('visit_records').select('*').order('visit_date', { ascending: false })
   if (error) throw error
   return (data ?? []).map(toVisitRecord)
 }
 
-export async function getVisitRecordsByCustomer(db: SupabaseClient | null, customerId: string): Promise<VisitRecord[]> {
+export async function getVisitRecordsByCustomer(db: DbClient | null, customerId: string): Promise<VisitRecord[]> {
   if (!db) return Array.from(store.visitRecords.values()).filter((v) => v.customerId === customerId).sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime())
   const { data, error } = await db.from('visit_records').select('*').eq('customer_id', customerId).order('visit_date', { ascending: false })
   if (error) throw error
   return (data ?? []).map(toVisitRecord)
 }
 
-export async function getVisitRecordsByCast(db: SupabaseClient | null, castId: string): Promise<VisitRecord[]> {
+export async function getVisitRecordsByCast(db: DbClient | null, castId: string): Promise<VisitRecord[]> {
   if (!db) return Array.from(store.visitRecords.values()).filter((v) => v.designatedCastIds.includes(castId)).sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime())
   const { data, error } = await db.from('visit_records').select('*').contains('designated_cast_ids', [castId]).order('visit_date', { ascending: false })
   if (error) throw error
   return (data ?? []).map(toVisitRecord)
 }
 
-export async function getVisitRecordsByInStoreCast(db: SupabaseClient | null, castId: string): Promise<VisitRecord[]> {
+export async function getVisitRecordsByInStoreCast(db: DbClient | null, castId: string): Promise<VisitRecord[]> {
   if (!db) return Array.from(store.visitRecords.values()).filter((v) => v.inStoreCastIds.includes(castId)).sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime())
   const { data, error } = await db.from('visit_records').select('*').contains('in_store_cast_ids', [castId]).order('visit_date', { ascending: false })
   if (error) throw error
   return (data ?? []).map(toVisitRecord)
 }
 
-export async function createVisitRecord(db: SupabaseClient | null, data: Omit<VisitRecord, 'id'>): Promise<VisitRecord> {
+export async function createVisitRecord(db: DbClient | null, data: Omit<VisitRecord, 'id'>): Promise<VisitRecord> {
   const id = generateId()
   if (!db) {
     const record: VisitRecord = { ...data, id }
@@ -354,14 +354,14 @@ export async function createVisitRecord(db: SupabaseClient | null, data: Omit<Vi
   return toVisitRecord(row)
 }
 
-export async function getVisitRecord(db: SupabaseClient | null, id: string): Promise<VisitRecord | null> {
+export async function getVisitRecord(db: DbClient | null, id: string): Promise<VisitRecord | null> {
   if (!db) return store.visitRecords.get(id) ?? null
   const { data, error } = await db.from('visit_records').select('*').eq('id', id).maybeSingle()
   if (error) throw error
   return data ? toVisitRecord(data) : null
 }
 
-export async function updateVisitRecord(db: SupabaseClient | null, id: string, data: Partial<Omit<VisitRecord, 'id'>>): Promise<VisitRecord | null> {
+export async function updateVisitRecord(db: DbClient | null, id: string, data: Partial<Omit<VisitRecord, 'id'>>): Promise<VisitRecord | null> {
   if (!db) {
     const existing = store.visitRecords.get(id)
     if (!existing) return null
@@ -381,7 +381,7 @@ export async function updateVisitRecord(db: SupabaseClient | null, id: string, d
   return toVisitRecord(row)
 }
 
-export async function deleteVisitRecord(db: SupabaseClient | null, id: string): Promise<boolean> {
+export async function deleteVisitRecord(db: DbClient | null, id: string): Promise<boolean> {
   if (!db) return store.visitRecords.delete(id)
   const { error } = await db.from('visit_records').delete().eq('id', id)
   if (error) throw error
@@ -390,21 +390,21 @@ export async function deleteVisitRecord(db: SupabaseClient | null, id: string): 
 
 // ─── Reservation CRUD ─────────────────────────────────────────────────────────
 
-export async function getReservations(db: SupabaseClient | null): Promise<Reservation[]> {
+export async function getReservations(db: DbClient | null): Promise<Reservation[]> {
   if (!db) return Array.from(store.reservations.values()).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))
   const { data, error } = await db.from('reservations').select('*').order('date').order('time')
   if (error) throw error
   return (data ?? []).map(toReservation)
 }
 
-export async function getReservation(db: SupabaseClient | null, id: string): Promise<Reservation | null> {
+export async function getReservation(db: DbClient | null, id: string): Promise<Reservation | null> {
   if (!db) return store.reservations.get(id) ?? null
   const { data, error } = await db.from('reservations').select('*').eq('id', id).maybeSingle()
   if (error) throw error
   return data ? toReservation(data) : null
 }
 
-export async function createReservation(db: SupabaseClient | null, data: Omit<Reservation, 'id' | 'updatedAt'>): Promise<Reservation> {
+export async function createReservation(db: DbClient | null, data: Omit<Reservation, 'id' | 'updatedAt'>): Promise<Reservation> {
   const id = generateId()
   const updatedAt = new Date().toISOString()
   if (!db) {
@@ -425,7 +425,7 @@ export async function createReservation(db: SupabaseClient | null, data: Omit<Re
   return toReservation(row)
 }
 
-export async function updateReservation(db: SupabaseClient | null, id: string, data: Partial<Omit<Reservation, 'id'>>): Promise<Reservation | null> {
+export async function updateReservation(db: DbClient | null, id: string, data: Partial<Omit<Reservation, 'id'>>): Promise<Reservation | null> {
   if (!db) {
     const existing = store.reservations.get(id)
     if (!existing) return null
@@ -450,14 +450,14 @@ export async function updateReservation(db: SupabaseClient | null, id: string, d
   return toReservation(row)
 }
 
-export async function getReservationsByCustomer(db: SupabaseClient | null, customerId: string): Promise<Reservation[]> {
+export async function getReservationsByCustomer(db: DbClient | null, customerId: string): Promise<Reservation[]> {
   if (!db) return Array.from(store.reservations.values()).filter((r) => r.customerIds.includes(customerId)).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))
   const { data, error } = await db.from('reservations').select('*').contains('customer_ids', [customerId]).order('date').order('time')
   if (error) throw error
   return (data ?? []).map(toReservation)
 }
 
-export async function getReservationsByCast(db: SupabaseClient | null, castId: string): Promise<Reservation[]> {
+export async function getReservationsByCast(db: DbClient | null, castId: string): Promise<Reservation[]> {
   if (!db) return Array.from(store.reservations.values()).filter((r) => r.designatedCastIds.includes(castId) || r.accompaniedCastIds.includes(castId)).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))
   const { data: d1, error: e1 } = await db.from('reservations').select('*').contains('designated_cast_ids', [castId]).order('date').order('time')
   if (e1) throw e1
@@ -468,7 +468,7 @@ export async function getReservationsByCast(db: SupabaseClient | null, castId: s
   return combined.map(toReservation).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))
 }
 
-export async function deleteReservation(db: SupabaseClient | null, id: string): Promise<boolean> {
+export async function deleteReservation(db: DbClient | null, id: string): Promise<boolean> {
   if (!db) return store.reservations.delete(id)
   const { error } = await db.from('reservations').delete().eq('id', id)
   if (error) throw error

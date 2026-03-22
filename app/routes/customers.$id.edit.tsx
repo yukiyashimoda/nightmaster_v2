@@ -2,12 +2,12 @@ import type { Route } from '../+types/routes/customers.$id.edit'
 import { Link } from 'react-router'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '../../src/components/ui/button'
-import { getSupabase } from '../lib/db.server'
+import { getDb } from '../lib/db.server'
 import { getCustomer, getCasts, getCustomers, getBottlesByCustomer } from '../../src/lib/kv.server'
 import { EditCustomerForm } from '../../src/app/customers/[id]/edit/edit-customer-form'
 
 export async function loader({ params, context }: Route.LoaderArgs) {
-  const db = getSupabase(context)
+  const db = getDb(context)
   const { id } = params
   const [customer, casts, allCustomers, bottles] = await Promise.all([
     getCustomer(db, id),
@@ -32,8 +32,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   try {
     const { getSessionUser } = await import('../../src/lib/auth.server')
     const { updateCustomer, updateBottle, createBottle, deleteBottle } = await import('../../src/lib/kv.server')
-    const { getSupabase: getSupabaseInAction } = await import('../lib/db.server')
-    const db = getSupabaseInAction(context)
+    const { getDb: getDbInAction } = await import('../lib/db.server')
+    const db = getDbInAction(context)
     const updatedBy = getSessionUser(request) ?? ''
     const result = await updateCustomer(db, id, { ...data, updatedBy })
     if (!result) return Response.json({ success: false, error: '顧客が見つかりません' })

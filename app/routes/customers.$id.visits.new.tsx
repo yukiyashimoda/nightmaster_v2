@@ -2,12 +2,12 @@ import type { Route } from '../+types/routes/customers.$id.visits.new'
 import { Link } from 'react-router'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '../../src/components/ui/button'
-import { getSupabase } from '../lib/db.server'
+import { getDb } from '../lib/db.server'
 import { getCustomer, getCasts, getBottlesByCustomer, getCustomers } from '../../src/lib/kv.server'
 import { NewVisitForm } from '../../src/app/customers/[id]/visits/new/new-visit-form'
 
 export async function loader({ params, context }: Route.LoaderArgs) {
-  const db = getSupabase(context)
+  const db = getDb(context)
   const { id } = params
   const [customer, casts, bottles, allCustomers] = await Promise.all([
     getCustomer(db, id),
@@ -32,8 +32,8 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 export async function action({ request, params, context }: Route.ActionArgs) {
   const body = await request.json()
   const { createBottle, updateBottle, createVisitRecord, getCustomer, updateCustomer } = await import('../../src/lib/kv.server')
-  const { getSupabase: getSupabaseInAction } = await import('../lib/db.server')
-  const db = getSupabaseInAction(context)
+  const { getDb: getDbInAction } = await import('../lib/db.server')
+  const db = getDbInAction(context)
   try {
     const updatedBottles = await Promise.all(
       (body.bottleUpdates ?? []).map((b: { id: string; remaining: string }) => updateBottle(db, b.id, { remaining: b.remaining }))

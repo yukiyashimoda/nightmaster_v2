@@ -1,6 +1,6 @@
 import type { Route } from '../+types/routes/casts'
 import { Link } from 'react-router'
-import { getSupabase } from '../lib/db.server'
+import { getDb } from '../lib/db.server'
 import { getCasts, getCustomers } from '../../src/lib/kv.server'
 import { getHiraganaGroup, hiraganaGroups } from '../../src/lib/utils'
 import { CastSearch } from '../../src/app/casts/cast-search'
@@ -8,7 +8,7 @@ import { NewCastFab } from '../../src/app/casts/new-cast-fab'
 import { GiAmpleDress } from 'react-icons/gi'
 
 export async function loader({ context }: Route.LoaderArgs) {
-  const db = getSupabase(context)
+  const db = getDb(context)
   const [casts, customers] = await Promise.all([getCasts(db), getCustomers(db)])
 
   const customerCounts: Record<string, number> = {}
@@ -37,8 +37,8 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
   const { getSessionUser } = await import('../../src/lib/auth.server')
   const { createCast } = await import('../../src/lib/kv.server')
-  const { getSupabase: getSupabaseInAction } = await import('../lib/db.server')
-  const db = getSupabaseInAction(context)
+  const { getDb: getDbInAction } = await import('../lib/db.server')
+  const db = getDbInAction(context)
   const updatedBy = getSessionUser(request) ?? ''
   await createCast(db, { name: name.trim(), ruby: ruby.trim(), memo: memo?.trim() ?? '', updatedBy })
   return Response.json({ success: true })

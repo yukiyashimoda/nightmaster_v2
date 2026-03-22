@@ -1,8 +1,8 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { PostgrestClient } from '@supabase/postgrest-js'
 
-export type { SupabaseClient }
+export type DbClient = PostgrestClient
 
-/** React Router の load context から Supabase クライアントを取得する */
-export function getSupabase(context: unknown): SupabaseClient | null {
-  return (context as { supabase?: SupabaseClient })?.supabase ?? null
+/** React Router の load context から DB クライアントを取得する */
+export function getDb(context: unknown): DbClient | null {
+  return (context as { supabase?: DbClient })?.supabase ?? null
 }
