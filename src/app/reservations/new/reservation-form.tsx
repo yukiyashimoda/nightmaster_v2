@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useFetcher, useNavigate } from 'react-router'
-import { DatePicker, TimeField, Calendar } from '@heroui/react'
-import { CalendarDate, Time } from '@internationalized/date'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { ChevronLeft, ChevronRight, Search, X, Check } from 'lucide-react'
+import { Search, X, Check } from 'lucide-react'
 import type { Customer, Cast } from '@/types'
 
 interface ReservationFormProps {
@@ -96,11 +94,6 @@ function CastMultiPicker({
   )
 }
 
-function todayCalendarDate(): CalendarDate {
-  const d = new Date()
-  return new CalendarDate(d.getFullYear(), d.getMonth() + 1, d.getDate())
-}
-
 export function ReservationForm({ customers, casts, bottlesByCustomer }: ReservationFormProps) {
   const fetcher = useFetcher()
   const navigate = useNavigate()
@@ -109,8 +102,9 @@ export function ReservationForm({ customers, casts, bottlesByCustomer }: Reserva
   const [showRegisterPrompt, setShowRegisterPrompt] = useState(false)
   const [savedDate, setSavedDate] = useState('')
 
-  const [dateValue, setDateValue] = useState<CalendarDate | null>(todayCalendarDate())
-  const [timeValue, setTimeValue] = useState<Time | null>(new Time(20, 0))
+  const today = new Date().toISOString().split('T')[0]
+  const [date, setDate] = useState(today)
+  const [time, setTime] = useState('20:00')
   const [partySize, setPartySize] = useState(2)
   const [customerType, setCustomerType] = useState<'existing' | 'new'>('new')
   const [guestName, setGuestName] = useState('')
@@ -129,7 +123,7 @@ export function ReservationForm({ customers, casts, bottlesByCustomer }: Reserva
   useEffect(() => {
     if (fetcher.state === 'idle' && fetcher.data?.success) {
       if (customerType === 'new') {
-        setSavedDate(dateString())
+        setSavedDate(date)
         setShowRegisterPrompt(true)
       } else {
         navigate('/reservations')
@@ -140,16 +134,6 @@ export function ReservationForm({ customers, casts, bottlesByCustomer }: Reserva
       setLoading(false)
     }
   }, [fetcher.state, fetcher.data])
-
-  function dateString(): string {
-    if (!dateValue) return ''
-    return `${dateValue.year}-${String(dateValue.month).padStart(2, '0')}-${String(dateValue.day).padStart(2, '0')}`
-  }
-
-  function timeString(): string {
-    if (!timeValue) return ''
-    return `${String(timeValue.hour).padStart(2, '0')}:${String(timeValue.minute).padStart(2, '0')}`
-  }
 
   const filteredCustomers = customerQuery.trim()
     ? customers.filter(
@@ -189,8 +173,6 @@ export function ReservationForm({ customers, casts, bottlesByCustomer }: Reserva
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!dateValue) { setError('日付を選択してください'); return }
-    if (!timeValue) { setError('時間を入力してください'); return }
     if (hasDesignation && designatedCastIds.length === 0) {
       setError('指名キャストを1名以上選択してください')
       return
@@ -203,8 +185,8 @@ export function ReservationForm({ customers, casts, bottlesByCustomer }: Reserva
     setError('')
     fetcher.submit(
       {
-        date: dateString(),
-        time: timeString(),
+        date,
+        time,
         partySize,
         hasDesignation,
         designatedCastIds: hasDesignation ? designatedCastIds : [],
@@ -267,65 +249,13 @@ export function ReservationForm({ customers, casts, bottlesByCustomer }: Reserva
       {/* 日付 */}
       <div className="space-y-1.5">
         <Label className="text-brand-plum">日付<span className="text-brand-coral ml-0.5">*</span></Label>
-        <DatePicker value={dateValue} onChange={setDateValue}>
-          <DatePicker.Trigger className="w-full flex items-center justify-between rounded-lg border border-brand-beige bg-white px-3 py-2.5 text-sm text-brand-plum hover:border-brand-plum/40 transition-colors data-[focus-visible]:outline-none">
-            <span className={dateValue ? 'text-brand-plum' : 'text-brand-plum/40'}>
-              {dateValue
-                ? `${dateValue.year}年${dateValue.month}月${dateValue.day}日`
-                : '日付を選択'}
-            </span>
-            <DatePicker.TriggerIndicator className="text-brand-plum/50" />
-          </DatePicker.Trigger>
-          <DatePicker.Popover className="z-50">
-            <Calendar value={dateValue} onChange={setDateValue}>
-              <Calendar.Header className="flex items-center justify-between px-3 py-2">
-                <Calendar.NavButton slot="previous" className="p-1 rounded hover:bg-brand-beige/60">
-                  <ChevronLeft className="h-4 w-4 text-brand-plum" />
-                </Calendar.NavButton>
-                <Calendar.Heading className="text-sm font-semibold text-brand-plum" />
-                <Calendar.NavButton slot="next" className="p-1 rounded hover:bg-brand-beige/60">
-                  <ChevronRight className="h-4 w-4 text-brand-plum" />
-                </Calendar.NavButton>
-              </Calendar.Header>
-              <Calendar.Grid className="w-full px-2 pb-2">
-                <Calendar.GridHeader>
-                  {(day) => (
-                    <Calendar.HeaderCell className="text-xs text-brand-plum/50 font-medium w-8 text-center py-1">
-                      {day}
-                    </Calendar.HeaderCell>
-                  )}
-                </Calendar.GridHeader>
-                <Calendar.GridBody>
-                  {(date) => (
-                    <Calendar.Cell
-                      date={date}
-                      className="w-8 h-8 text-center text-sm outline-none"
-                    >
-                      <Calendar.CellIndicator className="w-8 h-8 flex items-center justify-center rounded-full text-brand-plum hover:bg-brand-beige/60 data-[selected]:bg-brand-plum data-[selected]:text-white data-[outside-month]:text-brand-plum/25 cursor-pointer transition-colors" />
-                    </Calendar.Cell>
-                  )}
-                </Calendar.GridBody>
-              </Calendar.Grid>
-            </Calendar>
-          </DatePicker.Popover>
-        </DatePicker>
+        <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
       </div>
 
       {/* 時間 */}
       <div className="space-y-1.5">
         <Label className="text-brand-plum">時間<span className="text-brand-coral ml-0.5">*</span></Label>
-        <TimeField value={timeValue} onChange={setTimeValue}>
-          <TimeField.Group className="w-full rounded-lg border border-brand-beige bg-white hover:border-brand-plum/40 transition-colors">
-            <TimeField.Input className="flex items-center px-3 py-2.5 text-sm text-brand-plum">
-              {(segment) => (
-                <TimeField.Segment
-                  segment={segment}
-                  className="px-0.5 rounded outline-none focus:bg-brand-plum focus:text-white caret-transparent tabular-nums"
-                />
-              )}
-            </TimeField.Input>
-          </TimeField.Group>
-        </TimeField>
+        <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} required />
       </div>
 
       {/* 来店区分 */}
