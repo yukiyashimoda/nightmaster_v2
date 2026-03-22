@@ -2,31 +2,34 @@ import { Link } from 'react-router'
 import type { Route } from '../+types/routes/customers.new'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '../../src/components/ui/button'
+import { getSupabase } from '../lib/db.server'
 import { getCasts, getCustomers, createCustomer, createBottle, createVisitRecord } from '../../src/lib/kv.server'
 import { getSessionUser } from '../../src/lib/auth.server'
 import { NewCustomerForm } from '../../src/app/customers/new/new-customer-form'
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const db = getSupabase(context)
   const url = new URL(request.url)
   const name = url.searchParams.get('name') ?? ''
   const date = url.searchParams.get('date') ?? ''
-  const [casts, customers] = await Promise.all([getCasts(), getCustomers()])
+  const [casts, customers] = await Promise.all([getCasts(db), getCustomers(db)])
   return { casts, customers, initialName: name, initialFirstVisitDate: date }
 }
 
-export async function action({ request }: Route.ActionArgs) {
+export async function action({ request, context }: Route.ActionArgs) {
+  const db = getSupabase(context)
   const body = await request.json()
   const { data, bottles = [], inStoreCastIds = [] } = body
   try {
     const updatedBy = getSessionUser(request) ?? ''
-    const customer = await createCustomer({ ...data, updatedBy })
+    const customer = await createCustomer(db, { ...data, updatedBy })
     const createdBottles = await Promise.all(
       bottles.map((b: { name: string; remaining: string; openedDate: string }) =>
-        createBottle({ customerId: customer.id, name: b.name, remaining: b.remaining, openedDate: b.openedDate })
+        createBottle(db, { customerId: customer.id, name: b.name, remaining: b.remaining, openedDate: b.openedDate })
       )
     )
     if (customer.lastVisitDate) {
-      await createVisitRecord({
+      await createVisitRecord(db, {
         customerId: customer.id,
         visitDate: customer.lastVisitDate,
         designatedCastIds: customer.designatedCastIds,

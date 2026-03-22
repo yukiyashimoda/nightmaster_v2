@@ -1,13 +1,15 @@
 import type { Route } from '../+types/routes/reservations.new'
+import { getSupabase } from '../lib/db.server'
 import { getCustomers, getCasts, getBottles, createReservation } from '../../src/lib/kv.server'
 import { getSessionUser } from '../../src/lib/auth.server'
 import { ReservationForm } from '../../src/app/reservations/new/reservation-form'
 
-export async function loader() {
+export async function loader({ context }: Route.LoaderArgs) {
+  const db = getSupabase(context)
   const [customers, casts, bottles] = await Promise.all([
-    getCustomers(),
-    getCasts(),
-    getBottles(),
+    getCustomers(db),
+    getCasts(db),
+    getBottles(db),
   ])
 
   const sortedCustomers = [...customers].sort((a, b) => a.ruby.localeCompare(b.ruby, 'ja'))
@@ -25,11 +27,12 @@ export async function loader() {
   }
 }
 
-export async function action({ request }: Route.ActionArgs) {
+export async function action({ request, context }: Route.ActionArgs) {
+  const db = getSupabase(context)
   try {
     const body = await request.json()
     const updatedBy = getSessionUser(request) ?? ''
-    const reservation = await createReservation({ ...body, updatedBy })
+    const reservation = await createReservation(db, { ...body, updatedBy })
     return Response.json({ success: true, id: reservation.id })
   } catch {
     return Response.json({ success: false, error: '登録に失敗しました' })

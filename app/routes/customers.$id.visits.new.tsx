@@ -2,16 +2,18 @@ import type { Route } from '../+types/routes/customers.$id.visits.new'
 import { Link } from 'react-router'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '../../src/components/ui/button'
+import { getSupabase } from '../lib/db.server'
 import { getCustomer, getCasts, getBottlesByCustomer, getCustomers } from '../../src/lib/kv.server'
 import { NewVisitForm } from '../../src/app/customers/[id]/visits/new/new-visit-form'
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const db = getSupabase(context)
   const { id } = params
   const [customer, casts, bottles, allCustomers] = await Promise.all([
-    getCustomer(id),
-    getCasts(),
-    getBottlesByCustomer(id),
-    getCustomers(),
+    getCustomer(db, id),
+    getCasts(db),
+    getBottlesByCustomer(db, id),
+    getCustomers(db),
   ])
 
   if (!customer) {
@@ -27,18 +29,20 @@ export async function loader({ params }: Route.LoaderArgs) {
   }
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
+export async function action({ request, params, context }: Route.ActionArgs) {
   const body = await request.json()
   const { createBottle, updateBottle, createVisitRecord, getCustomer, updateCustomer } = await import('../../src/lib/kv.server')
+  const { getSupabase: getSupabaseInAction } = await import('../lib/db.server')
+  const db = getSupabaseInAction(context)
   try {
     const updatedBottles = await Promise.all(
-      (body.bottleUpdates ?? []).map((b: { id: string; remaining: string }) => updateBottle(b.id, { remaining: b.remaining }))
+      (body.bottleUpdates ?? []).map((b: { id: string; remaining: string }) => updateBottle(db, b.id, { remaining: b.remaining }))
     )
     const openedBottleIds: string[] = []
     const newBottleSnapshots: any[] = []
     for (const nb of (body.newBottles ?? [])) {
       if (nb.name.trim()) {
-        const bottle = await createBottle({ customerId: body.customerId, name: nb.name.trim(), remaining: nb.remaining, openedDate: nb.openedDate })
+        const bottle = await createBottle(db, { customerId: body.customerId, name: nb.name.trim(), remaining: nb.remaining, openedDate: nb.openedDate })
         openedBottleIds.push(bottle.id)
         newBottleSnapshots.push(bottle)
       }
@@ -47,7 +51,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     for (const b of updatedBottles) { if (b) snapshotMap.set(b.id, b) }
     for (const b of newBottleSnapshots) { snapshotMap.set(b.id, b) }
     const bottleSnapshots = Array.from(snapshotMap.values())
-    await createVisitRecord({
+    await createVisitRecord(db, {
       customerId: body.customerId,
       visitDate: body.visitDate,
       designatedCastIds: body.designatedCastIds,
@@ -60,23 +64,23 @@ export async function action({ request, params }: Route.ActionArgs) {
       bottleSnapshots,
     })
     if (body.designatedCastIds?.length > 0) {
-      const c = await getCustomer(body.customerId)
+      const c = await getCustomer(db, body.customerId)
       if (c) {
         const merged = Array.from(new Set([...c.designatedCastIds, ...body.designatedCastIds]))
-        await updateCustomer(body.customerId, { designatedCastIds: merged })
+        await updateCustomer(db, body.customerId, { designatedCastIds: merged })
       }
     }
     if (body.linkedCustomerIds?.length > 0) {
-      const mainCustomer = await getCustomer(body.customerId)
+      const mainCustomer = await getCustomer(db, body.customerId)
       if (mainCustomer) {
         const merged = Array.from(new Set([...mainCustomer.linkedCustomerIds, ...body.linkedCustomerIds]))
-        await updateCustomer(body.customerId, { linkedCustomerIds: merged })
+        await updateCustomer(db, body.customerId, { linkedCustomerIds: merged })
       }
       for (const linkedId of body.linkedCustomerIds) {
-        const linked = await getCustomer(linkedId)
+        const linked = await getCustomer(db, linkedId)
         if (linked) {
           const mergedLinked = Array.from(new Set([...linked.linkedCustomerIds, body.customerId]))
-          await updateCustomer(linkedId, { linkedCustomerIds: mergedLinked })
+          await updateCustomer(db, linkedId, { linkedCustomerIds: mergedLinked })
         }
       }
     }

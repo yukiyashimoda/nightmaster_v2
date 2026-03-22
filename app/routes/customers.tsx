@@ -1,4 +1,5 @@
 import type { Route } from '../+types/routes/customers'
+import { getSupabase } from '../lib/db.server'
 import { getCustomers, getBottlesByCustomer, getCasts } from '../../src/lib/kv.server'
 import { getHiraganaGroup, hiraganaGroups } from '../../src/lib/utils'
 import { CustomerCard } from '../../src/components/customer-card'
@@ -6,14 +7,15 @@ import { Fab } from '../../src/components/fab'
 import { CustomerSearch } from '../../src/app/customers/customer-search'
 import type { Bottle, Cast } from '../../src/types'
 
-export async function loader() {
-  const [customers, casts] = await Promise.all([getCustomers(), getCasts()])
+export async function loader({ context }: Route.LoaderArgs) {
+  const db = getSupabase(context)
+  const [customers, casts] = await Promise.all([getCustomers(db), getCasts(db)])
   const castMap = new Map<string, Cast>(casts.map((c) => [c.id, c]))
 
   const bottlesMap = new Map<string, Bottle[]>()
   await Promise.all(
     customers.map(async (c) => {
-      const bottles = await getBottlesByCustomer(c.id)
+      const bottles = await getBottlesByCustomer(db, c.id)
       bottlesMap.set(c.id, bottles)
     })
   )

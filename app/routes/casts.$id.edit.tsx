@@ -2,19 +2,21 @@ import type { Route } from '../+types/routes/casts.$id.edit'
 import { Link } from 'react-router'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '../../src/components/ui/button'
+import { getSupabase } from '../lib/db.server'
 import { getCast } from '../../src/lib/kv.server'
 import { EditCastForm } from '../../src/app/casts/[id]/edit/edit-cast-form'
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const db = getSupabase(context)
   const { id } = params
-  const cast = await getCast(id)
+  const cast = await getCast(db, id)
   if (!cast) {
     throw new Response(null, { status: 404 })
   }
   return { id, cast }
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
+export async function action({ request, params, context }: Route.ActionArgs) {
   const body = await request.json()
   const { name, ruby, memo } = body
   if (!name?.trim() || !ruby?.trim()) {
@@ -22,8 +24,10 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
   const { getSessionUser } = await import('../../src/lib/auth.server')
   const { updateCast } = await import('../../src/lib/kv.server')
+  const { getSupabase: getSupabaseInAction } = await import('../lib/db.server')
+  const db = getSupabaseInAction(context)
   const updatedBy = getSessionUser(request) ?? ''
-  const result = await updateCast(params.id, { name: name.trim(), ruby: ruby.trim(), memo: memo?.trim() ?? '', updatedBy })
+  const result = await updateCast(db, params.id, { name: name.trim(), ruby: ruby.trim(), memo: memo?.trim() ?? '', updatedBy })
   if (!result) return Response.json({ success: false, error: 'キャストが見つかりません' })
   return Response.json({ success: true })
 }

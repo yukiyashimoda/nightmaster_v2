@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import type { Route } from '../+types/routes/home'
+import { getSupabase } from '../lib/db.server'
 import { getCustomers, getBottles, getVisitRecords, getCasts, getReservations } from '../../src/lib/kv.server'
 import { formatDate } from '../../src/lib/utils'
 import { AlertTriangle, Calendar, CalendarDays, Users, TrendingUp } from 'lucide-react'
@@ -9,13 +10,14 @@ import { FaAddressCard } from 'react-icons/fa'
 import { CastRanking } from '../../src/components/cast-ranking'
 import { ReservationCard } from '../../src/components/reservation-card'
 
-export async function loader() {
+export async function loader({ context }: Route.LoaderArgs) {
+  const db = getSupabase(context)
   const [customers, bottles, visits, casts, reservations] = await Promise.all([
-    getCustomers(),
-    getBottles(),
-    getVisitRecords(),
-    getCasts(),
-    getReservations(),
+    getCustomers(db),
+    getBottles(db),
+    getVisitRecords(db),
+    getCasts(db),
+    getReservations(db),
   ])
   return { customers, bottles, visits, casts, reservations }
 }

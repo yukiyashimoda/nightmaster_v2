@@ -2,6 +2,7 @@ import type { Route } from '../+types/routes/casts.$id'
 import { Link } from 'react-router'
 import { ArrowLeft, Calendar, CalendarDays, Edit } from 'lucide-react'
 import { Button } from '../../src/components/ui/button'
+import { getSupabase } from '../lib/db.server'
 import {
   getCast,
   getVisitRecordsByCast,
@@ -17,16 +18,17 @@ import { ReservationCard } from '../../src/components/reservation-card'
 import { formatEditedBy } from '../../src/lib/utils'
 import { DeleteConfirmButton } from '../../src/components/delete-confirm-button'
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const db = getSupabase(context)
   const { id } = params
   const [cast, visits, inStoreVisits, reservations, customers, allCasts, bottles] = await Promise.all([
-    getCast(id),
-    getVisitRecordsByCast(id),
-    getVisitRecordsByInStoreCast(id),
-    getReservationsByCast(id),
-    getCustomers(),
-    getCasts(),
-    getBottles(),
+    getCast(db, id),
+    getVisitRecordsByCast(db, id),
+    getVisitRecordsByInStoreCast(db, id),
+    getReservationsByCast(db, id),
+    getCustomers(db),
+    getCasts(db),
+    getBottles(db),
   ])
 
   if (!cast) {
@@ -108,15 +110,17 @@ export async function loader({ params }: Route.LoaderArgs) {
   }
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
+export async function action({ request, params, context }: Route.ActionArgs) {
   const body = await request.json()
   if (body._intent === 'delete') {
     const { VALID_PASS } = await import('../../src/lib/auth.server')
     const { deleteCast } = await import('../../src/lib/kv.server')
+    const { getSupabase: getSupabaseInAction } = await import('../lib/db.server')
     if (body.password !== VALID_PASS) {
       return Response.json({ success: false, error: 'パスワードが違います' })
     }
-    await deleteCast(params.id)
+    const db = getSupabaseInAction(context)
+    await deleteCast(db, params.id)
     return Response.json({ success: true })
   }
   return Response.json({ success: false })

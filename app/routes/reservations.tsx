@@ -1,13 +1,15 @@
 import type { Route } from '../+types/routes/reservations'
+import { getSupabase } from '../lib/db.server'
 import { getReservations, getCustomers, getCasts, getBottles } from '../../src/lib/kv.server'
 import { CalendarView } from '../../src/app/reservations/calendar-view'
 
-export async function loader() {
+export async function loader({ context }: Route.LoaderArgs) {
+  const db = getSupabase(context)
   const [reservations, customers, casts, bottles] = await Promise.all([
-    getReservations(),
-    getCustomers(),
-    getCasts(),
-    getBottles(),
+    getReservations(db),
+    getCustomers(db),
+    getCasts(db),
+    getBottles(db),
   ])
 
   const customerMap = new Map(customers.map((c) => [c.id, c]))

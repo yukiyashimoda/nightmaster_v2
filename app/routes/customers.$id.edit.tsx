@@ -2,16 +2,18 @@ import type { Route } from '../+types/routes/customers.$id.edit'
 import { Link } from 'react-router'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '../../src/components/ui/button'
+import { getSupabase } from '../lib/db.server'
 import { getCustomer, getCasts, getCustomers, getBottlesByCustomer } from '../../src/lib/kv.server'
 import { EditCustomerForm } from '../../src/app/customers/[id]/edit/edit-customer-form'
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const db = getSupabase(context)
   const { id } = params
   const [customer, casts, allCustomers, bottles] = await Promise.all([
-    getCustomer(id),
-    getCasts(),
-    getCustomers(),
-    getBottlesByCustomer(id),
+    getCustomer(db, id),
+    getCasts(db),
+    getCustomers(db),
+    getBottlesByCustomer(db, id),
   ])
 
   if (!customer) {
@@ -23,24 +25,26 @@ export async function loader({ params }: Route.LoaderArgs) {
   return { id, customer, casts, otherCustomers, bottles }
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
+export async function action({ request, params, context }: Route.ActionArgs) {
   const { id } = params
   const body = await request.json()
   const { data, bottleUpdates = [], newBottles = [], deletedBottleIds = [] } = body
   try {
     const { getSessionUser } = await import('../../src/lib/auth.server')
     const { updateCustomer, updateBottle, createBottle, deleteBottle } = await import('../../src/lib/kv.server')
+    const { getSupabase: getSupabaseInAction } = await import('../lib/db.server')
+    const db = getSupabaseInAction(context)
     const updatedBy = getSessionUser(request) ?? ''
-    const result = await updateCustomer(id, { ...data, updatedBy })
+    const result = await updateCustomer(db, id, { ...data, updatedBy })
     if (!result) return Response.json({ success: false, error: '顧客が見つかりません' })
     await Promise.all([
       ...bottleUpdates.map((b: { id: string; name: string; remaining: string }) =>
-        updateBottle(b.id, { name: b.name, remaining: b.remaining })
+        updateBottle(db, b.id, { name: b.name, remaining: b.remaining })
       ),
       ...newBottles.map((b: { name: string; remaining: string; openedDate: string }) =>
-        createBottle({ customerId: id, name: b.name, remaining: b.remaining, openedDate: b.openedDate })
+        createBottle(db, { customerId: id, name: b.name, remaining: b.remaining, openedDate: b.openedDate })
       ),
-      ...deletedBottleIds.map((bid: string) => deleteBottle(bid)),
+      ...deletedBottleIds.map((bid: string) => deleteBottle(db, bid)),
     ])
     return Response.json({ success: true })
   } catch {

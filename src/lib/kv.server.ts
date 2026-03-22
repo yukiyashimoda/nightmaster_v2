@@ -1,4 +1,4 @@
-import { getDB } from '../../app/lib/db.server'
+import type { SupabaseClient } from '../../app/lib/db.server'
 import type { Customer, Bottle, Cast, VisitRecord, Reservation } from '@/types'
 import {
   mockCustomers,
@@ -7,13 +7,6 @@ import {
   mockVisitRecords,
   mockReservations,
 } from './mock-data'
-
-// In-memory fallback — モジュール初期化時ではなく呼び出し時に評価する
-// （Cloudflare Pages の Secret は process.env に入らず globalThis 経由で受け取る）
-function useDB(): boolean {
-  const g = globalThis as Record<string, unknown>
-  return !!(process.env.DATABASE_URL ?? g.DATABASE_URL)
-}
 
 const store = {
   customers: new Map<string, Customer>(mockCustomers.map((c) => [c.id, c])),
@@ -94,332 +87,6 @@ function toVisitRecord(r: any): VisitRecord {
   }
 }
 
-// ─── Customer CRUD ────────────────────────────────────────────────────────────
-
-export async function getCustomers(): Promise<Customer[]> {
-  if (!useDB()) {
-    return Array.from(store.customers.values()).sort((a, b) =>
-      a.ruby.localeCompare(b.ruby, 'ja')
-    )
-  }
-  const sql = getDB()
-  const rows = await sql`SELECT * FROM customers ORDER BY ruby`
-  return rows.map(toCustomer)
-}
-
-export async function getCustomer(id: string): Promise<Customer | null> {
-  if (!useDB()) return store.customers.get(id) ?? null
-  const sql = getDB()
-  const rows = await sql`SELECT * FROM customers WHERE id = ${id}`
-  return rows[0] ? toCustomer(rows[0]) : null
-}
-
-export async function createCustomer(
-  data: Omit<Customer, 'id' | 'updatedAt'>
-): Promise<Customer> {
-  const id = generateId()
-  const updatedAt = new Date().toISOString()
-  if (!useDB()) {
-    const customer: Customer = { ...data, id, updatedAt }
-    store.customers.set(id, customer)
-    return customer
-  }
-  const sql = getDB()
-  const rows = await sql`
-    INSERT INTO customers (id, name, ruby, nickname, designated_cast_ids, is_alert, alert_reason, memo, linked_customer_ids, is_favorite, has_glass, glass_memo, receipt_names, phone, email, last_visit_date, updated_at, updated_by)
-    VALUES (${id}, ${data.name}, ${data.ruby}, ${data.nickname}, ${data.designatedCastIds}, ${data.isAlert}, ${data.alertReason}, ${data.memo}, ${data.linkedCustomerIds}, ${data.isFavorite ?? false}, ${data.hasGlass ?? false}, ${data.glassMemo ?? ''}, ${data.receiptNames ?? []}, ${data.phone ?? ''}, ${data.email ?? ''}, ${data.lastVisitDate}, ${updatedAt}, ${data.updatedBy})
-    RETURNING *
-  `
-  return toCustomer(rows[0])
-}
-
-export async function updateCustomer(
-  id: string,
-  data: Partial<Omit<Customer, 'id'>>
-): Promise<Customer | null> {
-  if (!useDB()) {
-    const existing = store.customers.get(id)
-    if (!existing) return null
-    const updated: Customer = { ...existing, ...data, id, updatedAt: new Date().toISOString() }
-    store.customers.set(id, updated)
-    return updated
-  }
-  const existing = await getCustomer(id)
-  if (!existing) return null
-  const m = { ...existing, ...data, updatedAt: new Date().toISOString() }
-  const sql = getDB()
-  const rows = await sql`
-    UPDATE customers SET
-      name = ${m.name}, ruby = ${m.ruby}, nickname = ${m.nickname},
-      designated_cast_ids = ${m.designatedCastIds}, is_alert = ${m.isAlert},
-      alert_reason = ${m.alertReason}, memo = ${m.memo},
-      linked_customer_ids = ${m.linkedCustomerIds}, is_favorite = ${m.isFavorite ?? false},
-      has_glass = ${m.hasGlass ?? false}, glass_memo = ${m.glassMemo ?? ''}, receipt_names = ${m.receiptNames ?? []}, phone = ${m.phone ?? ''}, email = ${m.email ?? ''}, last_visit_date = ${m.lastVisitDate},
-      updated_at = ${m.updatedAt}, updated_by = ${m.updatedBy}
-    WHERE id = ${id} RETURNING *
-  `
-  return rows[0] ? toCustomer(rows[0]) : null
-}
-
-export async function deleteCustomer(id: string): Promise<boolean> {
-  if (!useDB()) return store.customers.delete(id)
-  const sql = getDB()
-  await sql`DELETE FROM customers WHERE id = ${id}`
-  return true
-}
-
-// ─── Bottle CRUD ──────────────────────────────────────────────────────────────
-
-export async function getBottles(): Promise<Bottle[]> {
-  if (!useDB()) return Array.from(store.bottles.values())
-  const sql = getDB()
-  const rows = await sql`SELECT * FROM bottles`
-  return rows.map(toBottle)
-}
-
-export async function getBottlesByCustomer(customerId: string): Promise<Bottle[]> {
-  if (!useDB()) return Array.from(store.bottles.values()).filter((b) => b.customerId === customerId)
-  const sql = getDB()
-  const rows = await sql`SELECT * FROM bottles WHERE customer_id = ${customerId}`
-  return rows.map(toBottle)
-}
-
-export async function getBottle(id: string): Promise<Bottle | null> {
-  if (!useDB()) return store.bottles.get(id) ?? null
-  const sql = getDB()
-  const rows = await sql`SELECT * FROM bottles WHERE id = ${id}`
-  return rows[0] ? toBottle(rows[0]) : null
-}
-
-export async function createBottle(data: Omit<Bottle, 'id'>): Promise<Bottle> {
-  const id = generateId()
-  if (!useDB()) {
-    const bottle: Bottle = { ...data, id }
-    store.bottles.set(id, bottle)
-    return bottle
-  }
-  const sql = getDB()
-  const rows = await sql`
-    INSERT INTO bottles (id, customer_id, name, remaining, opened_date)
-    VALUES (${id}, ${data.customerId}, ${data.name}, ${data.remaining}, ${data.openedDate})
-    RETURNING *
-  `
-  return toBottle(rows[0])
-}
-
-export async function updateBottle(
-  id: string,
-  data: Partial<Omit<Bottle, 'id'>>
-): Promise<Bottle | null> {
-  if (!useDB()) {
-    const existing = store.bottles.get(id)
-    if (!existing) return null
-    const updated: Bottle = { ...existing, ...data, id }
-    store.bottles.set(id, updated)
-    return updated
-  }
-  const existing = await getBottle(id)
-  if (!existing) return null
-  const m = { ...existing, ...data }
-  const sql = getDB()
-  const rows = await sql`
-    UPDATE bottles SET name = ${m.name}, remaining = ${m.remaining}, opened_date = ${m.openedDate}
-    WHERE id = ${id} RETURNING *
-  `
-  return rows[0] ? toBottle(rows[0]) : null
-}
-
-export async function deleteBottle(id: string): Promise<boolean> {
-  if (!useDB()) return store.bottles.delete(id)
-  const sql = getDB()
-  await sql`DELETE FROM bottles WHERE id = ${id}`
-  return true
-}
-
-// ─── Cast CRUD ────────────────────────────────────────────────────────────────
-
-export async function getCasts(): Promise<Cast[]> {
-  if (!useDB()) {
-    return Array.from(store.casts.values()).sort((a, b) =>
-      a.ruby.localeCompare(b.ruby, 'ja')
-    )
-  }
-  const sql = getDB()
-  const rows = await sql`SELECT * FROM casts ORDER BY ruby`
-  return rows.map(toCast)
-}
-
-export async function getCast(id: string): Promise<Cast | null> {
-  if (!useDB()) return store.casts.get(id) ?? null
-  const sql = getDB()
-  const rows = await sql`SELECT * FROM casts WHERE id = ${id}`
-  return rows[0] ? toCast(rows[0]) : null
-}
-
-export async function createCast(data: Omit<Cast, 'id' | 'updatedAt'>): Promise<Cast> {
-  const id = generateId()
-  const updatedAt = new Date().toISOString()
-  if (!useDB()) {
-    const cast: Cast = { ...data, id, updatedAt }
-    store.casts.set(id, cast)
-    return cast
-  }
-  const sql = getDB()
-  const rows = await sql`
-    INSERT INTO casts (id, name, ruby, memo, updated_at, updated_by)
-    VALUES (${id}, ${data.name}, ${data.ruby}, ${data.memo}, ${updatedAt}, ${data.updatedBy})
-    RETURNING *
-  `
-  return toCast(rows[0])
-}
-
-export async function updateCast(
-  id: string,
-  data: Partial<Omit<Cast, 'id' | 'updatedAt'>>
-): Promise<Cast | null> {
-  if (!useDB()) {
-    const existing = store.casts.get(id)
-    if (!existing) return null
-    const updated: Cast = { ...existing, ...data, id, updatedAt: new Date().toISOString() }
-    store.casts.set(id, updated)
-    return updated
-  }
-  const existing = await getCast(id)
-  if (!existing) return null
-  const m = { ...existing, ...data, updatedAt: new Date().toISOString() }
-  const sql = getDB()
-  const rows = await sql`
-    UPDATE casts SET name = ${m.name}, ruby = ${m.ruby}, memo = ${m.memo},
-      updated_at = ${m.updatedAt}, updated_by = ${m.updatedBy}
-    WHERE id = ${id} RETURNING *
-  `
-  return rows[0] ? toCast(rows[0]) : null
-}
-
-export async function deleteCast(id: string): Promise<boolean> {
-  if (!useDB()) return store.casts.delete(id)
-  const sql = getDB()
-  await sql`DELETE FROM casts WHERE id = ${id}`
-  return true
-}
-
-// ─── VisitRecord CRUD ─────────────────────────────────────────────────────────
-
-export async function getVisitRecords(): Promise<VisitRecord[]> {
-  if (!useDB()) {
-    return Array.from(store.visitRecords.values()).sort(
-      (a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime()
-    )
-  }
-  const sql = getDB()
-  const rows = await sql`SELECT * FROM visit_records ORDER BY visit_date DESC`
-  return rows.map(toVisitRecord)
-}
-
-export async function getVisitRecordsByCustomer(customerId: string): Promise<VisitRecord[]> {
-  if (!useDB()) {
-    return Array.from(store.visitRecords.values())
-      .filter((v) => v.customerId === customerId)
-      .sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime())
-  }
-  const sql = getDB()
-  const rows = await sql`SELECT * FROM visit_records WHERE customer_id = ${customerId} ORDER BY visit_date DESC`
-  return rows.map(toVisitRecord)
-}
-
-export async function getVisitRecordsByCast(castId: string): Promise<VisitRecord[]> {
-  if (!useDB()) {
-    return Array.from(store.visitRecords.values())
-      .filter((v) => v.designatedCastIds.includes(castId))
-      .sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime())
-  }
-  const sql = getDB()
-  const rows = await sql`SELECT * FROM visit_records WHERE ${castId} = ANY(designated_cast_ids) ORDER BY visit_date DESC`
-  return rows.map(toVisitRecord)
-}
-
-export async function getVisitRecordsByInStoreCast(castId: string): Promise<VisitRecord[]> {
-  if (!useDB()) {
-    return Array.from(store.visitRecords.values())
-      .filter((v) => v.inStoreCastIds.includes(castId))
-      .sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime())
-  }
-  const sql = getDB()
-  const rows = await sql`SELECT * FROM visit_records WHERE ${castId} = ANY(in_store_cast_ids) ORDER BY visit_date DESC`
-  return rows.map(toVisitRecord)
-}
-
-export async function createVisitRecord(data: Omit<VisitRecord, 'id'>): Promise<VisitRecord> {
-  const id = generateId()
-  if (!useDB()) {
-    const record: VisitRecord = { ...data, id }
-    store.visitRecords.set(id, record)
-    const customer = store.customers.get(data.customerId)
-    if (customer) {
-      store.customers.set(data.customerId, {
-        ...customer,
-        lastVisitDate: data.visitDate,
-        updatedAt: new Date().toISOString(),
-      })
-    }
-    return record
-  }
-  const sql = getDB()
-  const snapshotsJson = JSON.stringify(data.bottleSnapshots ?? [])
-  const rows = await sql`
-    INSERT INTO visit_records (id, customer_id, visit_date, designated_cast_ids, in_store_cast_ids, bottles_opened, bottles_used, memo, is_alert, alert_reason, bottle_snapshots)
-    VALUES (${id}, ${data.customerId}, ${data.visitDate}, ${data.designatedCastIds}, ${data.inStoreCastIds}, ${data.bottlesOpened}, ${data.bottlesUsed}, ${data.memo}, ${data.isAlert ?? false}, ${data.alertReason ?? ''}, ${snapshotsJson}::jsonb)
-    RETURNING *
-  `
-  // Update customer lastVisitDate
-  await sql`
-    UPDATE customers SET last_visit_date = ${data.visitDate}, updated_at = ${new Date().toISOString()}
-    WHERE id = ${data.customerId}
-  `
-  return toVisitRecord(rows[0])
-}
-
-export async function getVisitRecord(id: string): Promise<VisitRecord | null> {
-  if (!useDB()) return store.visitRecords.get(id) ?? null
-  const sql = getDB()
-  const rows = await sql`SELECT * FROM visit_records WHERE id = ${id}`
-  return rows[0] ? toVisitRecord(rows[0]) : null
-}
-
-export async function updateVisitRecord(
-  id: string,
-  data: Partial<Omit<VisitRecord, 'id'>>
-): Promise<VisitRecord | null> {
-  if (!useDB()) {
-    const existing = store.visitRecords.get(id)
-    if (!existing) return null
-    const updated: VisitRecord = { ...existing, ...data, id }
-    store.visitRecords.set(id, updated)
-    return updated
-  }
-  const existing = await getVisitRecord(id)
-  if (!existing) return null
-  const m = { ...existing, ...data }
-  const sql = getDB()
-  const rows = await sql`
-    UPDATE visit_records SET
-      visit_date = ${m.visitDate}, designated_cast_ids = ${m.designatedCastIds},
-      in_store_cast_ids = ${m.inStoreCastIds}, memo = ${m.memo}, is_alert = ${m.isAlert ?? false},
-      alert_reason = ${m.alertReason ?? ''}
-    WHERE id = ${id} RETURNING *
-  `
-  return rows[0] ? toVisitRecord(rows[0]) : null
-}
-
-export async function deleteVisitRecord(id: string): Promise<boolean> {
-  if (!useDB()) return store.visitRecords.delete(id)
-  const sql = getDB()
-  await sql`DELETE FROM visit_records WHERE id = ${id}`
-  return true
-}
-
-// ─── Reservation CRUD ─────────────────────────────────────────────────────────
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toReservation(r: any): Reservation {
   return {
@@ -428,17 +95,11 @@ function toReservation(r: any): Reservation {
     time: r.time,
     partySize: r.party_size,
     hasDesignation: r.has_designation,
-    designatedCastIds: Array.isArray(r.designated_cast_ids) && r.designated_cast_ids.length > 0
-      ? r.designated_cast_ids
-      : (r.designated_cast_id ? [r.designated_cast_id] : []),
+    designatedCastIds: Array.isArray(r.designated_cast_ids) ? r.designated_cast_ids : [],
     isAccompanied: r.is_accompanied,
-    accompaniedCastIds: Array.isArray(r.accompanied_cast_ids) && r.accompanied_cast_ids.length > 0
-      ? r.accompanied_cast_ids
-      : (r.accompanied_cast_id ? [r.accompanied_cast_id] : []),
+    accompaniedCastIds: Array.isArray(r.accompanied_cast_ids) ? r.accompanied_cast_ids : [],
     customerType: r.customer_type,
-    customerIds: Array.isArray(r.customer_ids) && r.customer_ids.length > 0
-      ? r.customer_ids
-      : (r.customer_id ? [r.customer_id] : []),
+    customerIds: Array.isArray(r.customer_ids) ? r.customer_ids : [],
     guestName: r.guest_name ?? '',
     priceType: r.price_type,
     partyPlanPrice: r.party_plan_price ?? null,
@@ -451,92 +112,365 @@ function toReservation(r: any): Reservation {
   }
 }
 
-export async function getReservations(): Promise<Reservation[]> {
-  if (!useDB()) {
-    return Array.from(store.reservations.values()).sort((a, b) =>
-      `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`)
-    )
-  }
-  const sql = getDB()
-  const rows = await sql`SELECT * FROM reservations ORDER BY date, time`
-  return rows.map(toReservation)
+// ─── Customer CRUD ────────────────────────────────────────────────────────────
+
+export async function getCustomers(db: SupabaseClient | null): Promise<Customer[]> {
+  if (!db) return Array.from(store.customers.values()).sort((a, b) => a.ruby.localeCompare(b.ruby, 'ja'))
+  const { data, error } = await db.from('customers').select('*').order('ruby')
+  if (error) throw error
+  return (data ?? []).map(toCustomer)
 }
 
-export async function getReservation(id: string): Promise<Reservation | null> {
-  if (!useDB()) return store.reservations.get(id) ?? null
-  const sql = getDB()
-  const rows = await sql`SELECT * FROM reservations WHERE id = ${id}`
-  return rows[0] ? toReservation(rows[0]) : null
+export async function getCustomer(db: SupabaseClient | null, id: string): Promise<Customer | null> {
+  if (!db) return store.customers.get(id) ?? null
+  const { data, error } = await db.from('customers').select('*').eq('id', id).maybeSingle()
+  if (error) throw error
+  return data ? toCustomer(data) : null
 }
 
-export async function createReservation(data: Omit<Reservation, 'id' | 'updatedAt'>): Promise<Reservation> {
+export async function createCustomer(db: SupabaseClient | null, data: Omit<Customer, 'id' | 'updatedAt'>): Promise<Customer> {
   const id = generateId()
   const updatedAt = new Date().toISOString()
-  if (!useDB()) {
+  if (!db) {
+    const customer: Customer = { ...data, id, updatedAt }
+    store.customers.set(id, customer)
+    return customer
+  }
+  const { data: row, error } = await db.from('customers').insert({
+    id, name: data.name, ruby: data.ruby, nickname: data.nickname,
+    designated_cast_ids: data.designatedCastIds, is_alert: data.isAlert,
+    alert_reason: data.alertReason, memo: data.memo,
+    linked_customer_ids: data.linkedCustomerIds, is_favorite: data.isFavorite ?? false,
+    has_glass: data.hasGlass ?? false, glass_memo: data.glassMemo ?? '',
+    receipt_names: data.receiptNames ?? [], phone: data.phone ?? '',
+    email: data.email ?? '', last_visit_date: data.lastVisitDate,
+    updated_at: updatedAt, updated_by: data.updatedBy,
+  }).select().single()
+  if (error) throw error
+  return toCustomer(row)
+}
+
+export async function updateCustomer(db: SupabaseClient | null, id: string, data: Partial<Omit<Customer, 'id'>>): Promise<Customer | null> {
+  if (!db) {
+    const existing = store.customers.get(id)
+    if (!existing) return null
+    const updated: Customer = { ...existing, ...data, id, updatedAt: new Date().toISOString() }
+    store.customers.set(id, updated)
+    return updated
+  }
+  const existing = await getCustomer(db, id)
+  if (!existing) return null
+  const m = { ...existing, ...data, updatedAt: new Date().toISOString() }
+  const { data: row, error } = await db.from('customers').update({
+    name: m.name, ruby: m.ruby, nickname: m.nickname,
+    designated_cast_ids: m.designatedCastIds, is_alert: m.isAlert,
+    alert_reason: m.alertReason, memo: m.memo,
+    linked_customer_ids: m.linkedCustomerIds, is_favorite: m.isFavorite ?? false,
+    has_glass: m.hasGlass ?? false, glass_memo: m.glassMemo ?? '',
+    receipt_names: m.receiptNames ?? [], phone: m.phone ?? '',
+    email: m.email ?? '', last_visit_date: m.lastVisitDate,
+    updated_at: m.updatedAt, updated_by: m.updatedBy,
+  }).eq('id', id).select().single()
+  if (error) throw error
+  return toCustomer(row)
+}
+
+export async function deleteCustomer(db: SupabaseClient | null, id: string): Promise<boolean> {
+  if (!db) return store.customers.delete(id)
+  const { error } = await db.from('customers').delete().eq('id', id)
+  if (error) throw error
+  return true
+}
+
+// ─── Bottle CRUD ──────────────────────────────────────────────────────────────
+
+export async function getBottles(db: SupabaseClient | null): Promise<Bottle[]> {
+  if (!db) return Array.from(store.bottles.values())
+  const { data, error } = await db.from('bottles').select('*')
+  if (error) throw error
+  return (data ?? []).map(toBottle)
+}
+
+export async function getBottlesByCustomer(db: SupabaseClient | null, customerId: string): Promise<Bottle[]> {
+  if (!db) return Array.from(store.bottles.values()).filter((b) => b.customerId === customerId)
+  const { data, error } = await db.from('bottles').select('*').eq('customer_id', customerId)
+  if (error) throw error
+  return (data ?? []).map(toBottle)
+}
+
+export async function getBottle(db: SupabaseClient | null, id: string): Promise<Bottle | null> {
+  if (!db) return store.bottles.get(id) ?? null
+  const { data, error } = await db.from('bottles').select('*').eq('id', id).maybeSingle()
+  if (error) throw error
+  return data ? toBottle(data) : null
+}
+
+export async function createBottle(db: SupabaseClient | null, data: Omit<Bottle, 'id'>): Promise<Bottle> {
+  const id = generateId()
+  if (!db) {
+    const bottle: Bottle = { ...data, id }
+    store.bottles.set(id, bottle)
+    return bottle
+  }
+  const { data: row, error } = await db.from('bottles').insert({
+    id, customer_id: data.customerId, name: data.name,
+    remaining: data.remaining, opened_date: data.openedDate,
+  }).select().single()
+  if (error) throw error
+  return toBottle(row)
+}
+
+export async function updateBottle(db: SupabaseClient | null, id: string, data: Partial<Omit<Bottle, 'id'>>): Promise<Bottle | null> {
+  if (!db) {
+    const existing = store.bottles.get(id)
+    if (!existing) return null
+    const updated: Bottle = { ...existing, ...data, id }
+    store.bottles.set(id, updated)
+    return updated
+  }
+  const existing = await getBottle(db, id)
+  if (!existing) return null
+  const m = { ...existing, ...data }
+  const { data: row, error } = await db.from('bottles').update({
+    name: m.name, remaining: m.remaining, opened_date: m.openedDate,
+  }).eq('id', id).select().single()
+  if (error) throw error
+  return toBottle(row)
+}
+
+export async function deleteBottle(db: SupabaseClient | null, id: string): Promise<boolean> {
+  if (!db) return store.bottles.delete(id)
+  const { error } = await db.from('bottles').delete().eq('id', id)
+  if (error) throw error
+  return true
+}
+
+// ─── Cast CRUD ────────────────────────────────────────────────────────────────
+
+export async function getCasts(db: SupabaseClient | null): Promise<Cast[]> {
+  if (!db) return Array.from(store.casts.values()).sort((a, b) => a.ruby.localeCompare(b.ruby, 'ja'))
+  const { data, error } = await db.from('casts').select('*').order('ruby')
+  if (error) throw error
+  return (data ?? []).map(toCast)
+}
+
+export async function getCast(db: SupabaseClient | null, id: string): Promise<Cast | null> {
+  if (!db) return store.casts.get(id) ?? null
+  const { data, error } = await db.from('casts').select('*').eq('id', id).maybeSingle()
+  if (error) throw error
+  return data ? toCast(data) : null
+}
+
+export async function createCast(db: SupabaseClient | null, data: Omit<Cast, 'id' | 'updatedAt'>): Promise<Cast> {
+  const id = generateId()
+  const updatedAt = new Date().toISOString()
+  if (!db) {
+    const cast: Cast = { ...data, id, updatedAt }
+    store.casts.set(id, cast)
+    return cast
+  }
+  const { data: row, error } = await db.from('casts').insert({
+    id, name: data.name, ruby: data.ruby, memo: data.memo,
+    updated_at: updatedAt, updated_by: data.updatedBy,
+  }).select().single()
+  if (error) throw error
+  return toCast(row)
+}
+
+export async function updateCast(db: SupabaseClient | null, id: string, data: Partial<Omit<Cast, 'id' | 'updatedAt'>>): Promise<Cast | null> {
+  if (!db) {
+    const existing = store.casts.get(id)
+    if (!existing) return null
+    const updated: Cast = { ...existing, ...data, id, updatedAt: new Date().toISOString() }
+    store.casts.set(id, updated)
+    return updated
+  }
+  const existing = await getCast(db, id)
+  if (!existing) return null
+  const m = { ...existing, ...data, updatedAt: new Date().toISOString() }
+  const { data: row, error } = await db.from('casts').update({
+    name: m.name, ruby: m.ruby, memo: m.memo,
+    updated_at: m.updatedAt, updated_by: m.updatedBy,
+  }).eq('id', id).select().single()
+  if (error) throw error
+  return toCast(row)
+}
+
+export async function deleteCast(db: SupabaseClient | null, id: string): Promise<boolean> {
+  if (!db) return store.casts.delete(id)
+  const { error } = await db.from('casts').delete().eq('id', id)
+  if (error) throw error
+  return true
+}
+
+// ─── VisitRecord CRUD ─────────────────────────────────────────────────────────
+
+export async function getVisitRecords(db: SupabaseClient | null): Promise<VisitRecord[]> {
+  if (!db) return Array.from(store.visitRecords.values()).sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime())
+  const { data, error } = await db.from('visit_records').select('*').order('visit_date', { ascending: false })
+  if (error) throw error
+  return (data ?? []).map(toVisitRecord)
+}
+
+export async function getVisitRecordsByCustomer(db: SupabaseClient | null, customerId: string): Promise<VisitRecord[]> {
+  if (!db) return Array.from(store.visitRecords.values()).filter((v) => v.customerId === customerId).sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime())
+  const { data, error } = await db.from('visit_records').select('*').eq('customer_id', customerId).order('visit_date', { ascending: false })
+  if (error) throw error
+  return (data ?? []).map(toVisitRecord)
+}
+
+export async function getVisitRecordsByCast(db: SupabaseClient | null, castId: string): Promise<VisitRecord[]> {
+  if (!db) return Array.from(store.visitRecords.values()).filter((v) => v.designatedCastIds.includes(castId)).sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime())
+  const { data, error } = await db.from('visit_records').select('*').contains('designated_cast_ids', [castId]).order('visit_date', { ascending: false })
+  if (error) throw error
+  return (data ?? []).map(toVisitRecord)
+}
+
+export async function getVisitRecordsByInStoreCast(db: SupabaseClient | null, castId: string): Promise<VisitRecord[]> {
+  if (!db) return Array.from(store.visitRecords.values()).filter((v) => v.inStoreCastIds.includes(castId)).sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime())
+  const { data, error } = await db.from('visit_records').select('*').contains('in_store_cast_ids', [castId]).order('visit_date', { ascending: false })
+  if (error) throw error
+  return (data ?? []).map(toVisitRecord)
+}
+
+export async function createVisitRecord(db: SupabaseClient | null, data: Omit<VisitRecord, 'id'>): Promise<VisitRecord> {
+  const id = generateId()
+  if (!db) {
+    const record: VisitRecord = { ...data, id }
+    store.visitRecords.set(id, record)
+    const customer = store.customers.get(data.customerId)
+    if (customer) store.customers.set(data.customerId, { ...customer, lastVisitDate: data.visitDate, updatedAt: new Date().toISOString() })
+    return record
+  }
+  const { data: row, error } = await db.from('visit_records').insert({
+    id, customer_id: data.customerId, visit_date: data.visitDate,
+    designated_cast_ids: data.designatedCastIds, in_store_cast_ids: data.inStoreCastIds,
+    bottles_opened: data.bottlesOpened, bottles_used: data.bottlesUsed,
+    memo: data.memo, is_alert: data.isAlert ?? false, alert_reason: data.alertReason ?? '',
+    bottle_snapshots: data.bottleSnapshots ?? [],
+  }).select().single()
+  if (error) throw error
+  await db.from('customers').update({ last_visit_date: data.visitDate, updated_at: new Date().toISOString() }).eq('id', data.customerId)
+  return toVisitRecord(row)
+}
+
+export async function getVisitRecord(db: SupabaseClient | null, id: string): Promise<VisitRecord | null> {
+  if (!db) return store.visitRecords.get(id) ?? null
+  const { data, error } = await db.from('visit_records').select('*').eq('id', id).maybeSingle()
+  if (error) throw error
+  return data ? toVisitRecord(data) : null
+}
+
+export async function updateVisitRecord(db: SupabaseClient | null, id: string, data: Partial<Omit<VisitRecord, 'id'>>): Promise<VisitRecord | null> {
+  if (!db) {
+    const existing = store.visitRecords.get(id)
+    if (!existing) return null
+    const updated: VisitRecord = { ...existing, ...data, id }
+    store.visitRecords.set(id, updated)
+    return updated
+  }
+  const existing = await getVisitRecord(db, id)
+  if (!existing) return null
+  const m = { ...existing, ...data }
+  const { data: row, error } = await db.from('visit_records').update({
+    visit_date: m.visitDate, designated_cast_ids: m.designatedCastIds,
+    in_store_cast_ids: m.inStoreCastIds, memo: m.memo,
+    is_alert: m.isAlert ?? false, alert_reason: m.alertReason ?? '',
+  }).eq('id', id).select().single()
+  if (error) throw error
+  return toVisitRecord(row)
+}
+
+export async function deleteVisitRecord(db: SupabaseClient | null, id: string): Promise<boolean> {
+  if (!db) return store.visitRecords.delete(id)
+  const { error } = await db.from('visit_records').delete().eq('id', id)
+  if (error) throw error
+  return true
+}
+
+// ─── Reservation CRUD ─────────────────────────────────────────────────────────
+
+export async function getReservations(db: SupabaseClient | null): Promise<Reservation[]> {
+  if (!db) return Array.from(store.reservations.values()).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))
+  const { data, error } = await db.from('reservations').select('*').order('date').order('time')
+  if (error) throw error
+  return (data ?? []).map(toReservation)
+}
+
+export async function getReservation(db: SupabaseClient | null, id: string): Promise<Reservation | null> {
+  if (!db) return store.reservations.get(id) ?? null
+  const { data, error } = await db.from('reservations').select('*').eq('id', id).maybeSingle()
+  if (error) throw error
+  return data ? toReservation(data) : null
+}
+
+export async function createReservation(db: SupabaseClient | null, data: Omit<Reservation, 'id' | 'updatedAt'>): Promise<Reservation> {
+  const id = generateId()
+  const updatedAt = new Date().toISOString()
+  if (!db) {
     const reservation: Reservation = { ...data, id, updatedAt }
     store.reservations.set(id, reservation)
     return reservation
   }
-  const sql = getDB()
-  const rows = await sql`
-    INSERT INTO reservations (id, date, time, party_size, has_designation, designated_cast_ids, is_accompanied, accompanied_cast_ids, customer_type, customer_ids, guest_name, phone, price_type, party_plan_price, party_plan_minutes, memo, is_visited, updated_at, updated_by)
-    VALUES (${id}, ${data.date}, ${data.time}, ${data.partySize}, ${data.hasDesignation}, ${data.designatedCastIds}, ${data.isAccompanied}, ${data.accompaniedCastIds}, ${data.customerType}, ${data.customerIds}, ${data.guestName}, ${data.phone}, ${data.priceType}, ${data.partyPlanPrice}, ${data.partyPlanMinutes}, ${data.memo}, ${data.isVisited}, ${updatedAt}, ${data.updatedBy})
-    RETURNING *
-  `
-  return toReservation(rows[0])
+  const { data: row, error } = await db.from('reservations').insert({
+    id, date: data.date, time: data.time, party_size: data.partySize,
+    has_designation: data.hasDesignation, designated_cast_ids: data.designatedCastIds,
+    is_accompanied: data.isAccompanied, accompanied_cast_ids: data.accompaniedCastIds,
+    customer_type: data.customerType, customer_ids: data.customerIds,
+    guest_name: data.guestName, phone: data.phone, price_type: data.priceType,
+    party_plan_price: data.partyPlanPrice, party_plan_minutes: data.partyPlanMinutes,
+    memo: data.memo, is_visited: data.isVisited, updated_at: updatedAt, updated_by: data.updatedBy,
+  }).select().single()
+  if (error) throw error
+  return toReservation(row)
 }
 
-export async function updateReservation(id: string, data: Partial<Omit<Reservation, 'id'>>): Promise<Reservation | null> {
-  if (!useDB()) {
+export async function updateReservation(db: SupabaseClient | null, id: string, data: Partial<Omit<Reservation, 'id'>>): Promise<Reservation | null> {
+  if (!db) {
     const existing = store.reservations.get(id)
     if (!existing) return null
     const updated: Reservation = { ...existing, ...data, id, updatedAt: new Date().toISOString() }
     store.reservations.set(id, updated)
     return updated
   }
-  const existing = await getReservation(id)
+  const existing = await getReservation(db, id)
   if (!existing) return null
   const m = { ...existing, ...data, updatedAt: new Date().toISOString() }
-  const sql = getDB()
-  const rows = await sql`
-    UPDATE reservations SET
-      date = ${m.date}, time = ${m.time}, party_size = ${m.partySize},
-      has_designation = ${m.hasDesignation}, designated_cast_ids = ${m.designatedCastIds},
-      is_accompanied = ${m.isAccompanied}, accompanied_cast_ids = ${m.accompaniedCastIds},
-      customer_type = ${m.customerType}, customer_ids = ${m.customerIds},
-      guest_name = ${m.guestName}, phone = ${m.phone}, is_visited = ${m.isVisited}, price_type = ${m.priceType}, party_plan_price = ${m.partyPlanPrice},
-      party_plan_minutes = ${m.partyPlanMinutes}, memo = ${m.memo},
-      updated_at = ${m.updatedAt}, updated_by = ${m.updatedBy}
-    WHERE id = ${id} RETURNING *
-  `
-  return rows[0] ? toReservation(rows[0]) : null
+  const { data: row, error } = await db.from('reservations').update({
+    date: m.date, time: m.time, party_size: m.partySize,
+    has_designation: m.hasDesignation, designated_cast_ids: m.designatedCastIds,
+    is_accompanied: m.isAccompanied, accompanied_cast_ids: m.accompaniedCastIds,
+    customer_type: m.customerType, customer_ids: m.customerIds,
+    guest_name: m.guestName, phone: m.phone, is_visited: m.isVisited,
+    price_type: m.priceType, party_plan_price: m.partyPlanPrice,
+    party_plan_minutes: m.partyPlanMinutes, memo: m.memo,
+    updated_at: m.updatedAt, updated_by: m.updatedBy,
+  }).eq('id', id).select().single()
+  if (error) throw error
+  return toReservation(row)
 }
 
-export async function getReservationsByCustomer(customerId: string): Promise<Reservation[]> {
-  if (!useDB()) {
-    return Array.from(store.reservations.values())
-      .filter((r) => r.customerIds.includes(customerId))
-      .sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))
-  }
-  const sql = getDB()
-  const rows = await sql`SELECT * FROM reservations WHERE ${customerId} = ANY(customer_ids) OR customer_id = ${customerId} ORDER BY date, time`
-  return rows.map(toReservation)
+export async function getReservationsByCustomer(db: SupabaseClient | null, customerId: string): Promise<Reservation[]> {
+  if (!db) return Array.from(store.reservations.values()).filter((r) => r.customerIds.includes(customerId)).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))
+  const { data, error } = await db.from('reservations').select('*').contains('customer_ids', [customerId]).order('date').order('time')
+  if (error) throw error
+  return (data ?? []).map(toReservation)
 }
 
-export async function getReservationsByCast(castId: string): Promise<Reservation[]> {
-  if (!useDB()) {
-    return Array.from(store.reservations.values())
-      .filter((r) => r.designatedCastIds.includes(castId) || r.accompaniedCastIds.includes(castId))
-      .sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))
-  }
-  const sql = getDB()
-  const rows = await sql`SELECT * FROM reservations WHERE ${castId} = ANY(designated_cast_ids) OR ${castId} = ANY(accompanied_cast_ids) ORDER BY date, time`
-  return rows.map(toReservation)
+export async function getReservationsByCast(db: SupabaseClient | null, castId: string): Promise<Reservation[]> {
+  if (!db) return Array.from(store.reservations.values()).filter((r) => r.designatedCastIds.includes(castId) || r.accompaniedCastIds.includes(castId)).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))
+  const { data: d1, error: e1 } = await db.from('reservations').select('*').contains('designated_cast_ids', [castId]).order('date').order('time')
+  if (e1) throw e1
+  const { data: d2, error: e2 } = await db.from('reservations').select('*').contains('accompanied_cast_ids', [castId]).order('date').order('time')
+  if (e2) throw e2
+  const ids = new Set((d1 ?? []).map((r: any) => r.id))
+  const combined = [...(d1 ?? []), ...(d2 ?? []).filter((r: any) => !ids.has(r.id))]
+  return combined.map(toReservation).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))
 }
 
-export async function deleteReservation(id: string): Promise<boolean> {
-  if (!useDB()) return store.reservations.delete(id)
-  const sql = getDB()
-  await sql`DELETE FROM reservations WHERE id = ${id}`
+export async function deleteReservation(db: SupabaseClient | null, id: string): Promise<boolean> {
+  if (!db) return store.reservations.delete(id)
+  const { error } = await db.from('reservations').delete().eq('id', id)
+  if (error) throw error
   return true
 }
