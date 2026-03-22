@@ -12,8 +12,6 @@ import { ReservationCard } from '../../src/components/reservation-card'
 
 export async function loader({ context }: Route.LoaderArgs) {
   const db = getSupabase(context)
-  console.log("ENV CHECK:", !!(context as { cloudflare?: { env?: { SUPABASE_URL?: string } } })?.cloudflare?.env?.SUPABASE_URL)
-  console.log("Supabase client:", !!db)
   const [customers, bottles, visits, casts, reservations] = await Promise.all([
     getCustomers(db),
     getBottles(db),
