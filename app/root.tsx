@@ -24,7 +24,7 @@ export function links(): Route.LinkDescriptors {
     },
     {
       rel: 'stylesheet',
-      href: 'https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@300;400;500&family=Audiowide&display=swap',
+      href: 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@300;400;500;600;700&family=Audiowide&display=swap',
     },
     { rel: 'manifest', href: '/manifest.json' },
   ]
@@ -52,9 +52,9 @@ export default function App({ loaderData }: Route.ComponentProps) {
         <Meta />
         <Links />
         <style>{`
-          body { font-family: 'Kiwi Maru', sans-serif; }
+          body { font-family: 'IBM Plex Sans JP', sans-serif; }
           .font-audiowide { font-family: 'Audiowide', cursive; }
-          :root { --font-kiwi-maru: 'Kiwi Maru'; --font-audiowide: 'Audiowide'; }
+          :root { --font-audiowide: 'Audiowide'; }
         `}</style>
       </head>
       <body className="bg-brand-beige/20 text-brand-plum min-h-screen">
