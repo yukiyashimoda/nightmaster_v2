@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useFetcher, useNavigate } from 'react-router'
-import { DatePicker, TimeField } from '@heroui/react'
-import { CalendarDate, Time, parseDate } from '@internationalized/date'
+import { DatePicker, TimeField, Calendar } from '@heroui/react'
+import { CalendarDate, Time } from '@internationalized/date'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Search, X, Check } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Search, X, Check } from 'lucide-react'
 import type { Customer, Cast } from '@/types'
 
 interface ReservationFormProps {
@@ -265,32 +265,68 @@ export function ReservationForm({ customers, casts, bottlesByCustomer }: Reserva
       )}
 
       {/* 日付 */}
-      <DatePicker
-        label="日付"
-        isRequired
-        value={dateValue}
-        onChange={setDateValue}
-        className="w-full"
-        classNames={{
-          label: 'text-brand-plum font-medium',
-          inputWrapper: 'border border-brand-beige bg-white shadow-none hover:border-brand-plum/40 focus-within:border-brand-plum/60',
-          input: 'text-brand-plum',
-        }}
-      />
+      <div className="space-y-1.5">
+        <Label className="text-brand-plum">日付<span className="text-brand-coral ml-0.5">*</span></Label>
+        <DatePicker value={dateValue} onChange={setDateValue}>
+          <DatePicker.Trigger className="w-full flex items-center justify-between rounded-lg border border-brand-beige bg-white px-3 py-2.5 text-sm text-brand-plum hover:border-brand-plum/40 transition-colors data-[focus-visible]:outline-none">
+            <span className={dateValue ? 'text-brand-plum' : 'text-brand-plum/40'}>
+              {dateValue
+                ? `${dateValue.year}年${dateValue.month}月${dateValue.day}日`
+                : '日付を選択'}
+            </span>
+            <DatePicker.TriggerIndicator className="text-brand-plum/50" />
+          </DatePicker.Trigger>
+          <DatePicker.Popover className="z-50">
+            <Calendar value={dateValue} onChange={setDateValue}>
+              <Calendar.Header className="flex items-center justify-between px-3 py-2">
+                <Calendar.NavButton slot="previous" className="p-1 rounded hover:bg-brand-beige/60">
+                  <ChevronLeft className="h-4 w-4 text-brand-plum" />
+                </Calendar.NavButton>
+                <Calendar.Heading className="text-sm font-semibold text-brand-plum" />
+                <Calendar.NavButton slot="next" className="p-1 rounded hover:bg-brand-beige/60">
+                  <ChevronRight className="h-4 w-4 text-brand-plum" />
+                </Calendar.NavButton>
+              </Calendar.Header>
+              <Calendar.Grid className="w-full px-2 pb-2">
+                <Calendar.GridHeader>
+                  {(day) => (
+                    <Calendar.HeaderCell className="text-xs text-brand-plum/50 font-medium w-8 text-center py-1">
+                      {day}
+                    </Calendar.HeaderCell>
+                  )}
+                </Calendar.GridHeader>
+                <Calendar.GridBody>
+                  {(date) => (
+                    <Calendar.Cell
+                      date={date}
+                      className="w-8 h-8 text-center text-sm outline-none"
+                    >
+                      <Calendar.CellIndicator className="w-8 h-8 flex items-center justify-center rounded-full text-brand-plum hover:bg-brand-beige/60 data-[selected]:bg-brand-plum data-[selected]:text-white data-[outside-month]:text-brand-plum/25 cursor-pointer transition-colors" />
+                    </Calendar.Cell>
+                  )}
+                </Calendar.GridBody>
+              </Calendar.Grid>
+            </Calendar>
+          </DatePicker.Popover>
+        </DatePicker>
+      </div>
 
       {/* 時間 */}
-      <TimeField
-        label="時間"
-        isRequired
-        value={timeValue}
-        onChange={setTimeValue}
-        className="w-full"
-        classNames={{
-          label: 'text-brand-plum font-medium',
-          inputWrapper: 'border border-brand-beige bg-white shadow-none hover:border-brand-plum/40 focus-within:border-brand-plum/60',
-          input: 'text-brand-plum',
-        }}
-      />
+      <div className="space-y-1.5">
+        <Label className="text-brand-plum">時間<span className="text-brand-coral ml-0.5">*</span></Label>
+        <TimeField value={timeValue} onChange={setTimeValue}>
+          <TimeField.Group className="w-full rounded-lg border border-brand-beige bg-white hover:border-brand-plum/40 transition-colors">
+            <TimeField.Input className="flex items-center px-3 py-2.5 text-sm text-brand-plum">
+              {(segment) => (
+                <TimeField.Segment
+                  segment={segment}
+                  className="px-0.5 rounded outline-none focus:bg-brand-plum focus:text-white caret-transparent tabular-nums"
+                />
+              )}
+            </TimeField.Input>
+          </TimeField.Group>
+        </TimeField>
+      </div>
 
       {/* 来店区分 */}
       <div className="space-y-1.5">
