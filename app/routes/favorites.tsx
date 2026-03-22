@@ -1,23 +1,22 @@
 import type { Route } from '../+types/routes/favorites'
 import { getDb } from '../lib/db.server'
-import { getCustomers, getBottlesByCustomer, getCasts } from '../../src/lib/kv.server'
+import { getCustomers, getBottles, getCasts } from '../../src/lib/kv.server'
 import { CustomerCard } from '../../src/components/customer-card'
 import type { Bottle, Cast } from '../../src/types'
 
 export async function loader({ context }: Route.LoaderArgs) {
   const db = getDb(context)
-  const [customers, casts] = await Promise.all([getCustomers(db), getCasts(db)])
+  const [customers, casts, allBottles] = await Promise.all([getCustomers(db), getCasts(db), getBottles(db)])
   const castMap = new Map<string, Cast>(casts.map((c) => [c.id, c]))
 
   const favorites = customers.filter((c) => c.isFavorite)
 
   const bottlesMap = new Map<string, Bottle[]>()
-  await Promise.all(
-    favorites.map(async (c) => {
-      const bottles = await getBottlesByCustomer(db, c.id)
-      bottlesMap.set(c.id, bottles)
-    })
-  )
+  for (const bottle of allBottles) {
+    const list = bottlesMap.get(bottle.customerId) ?? []
+    list.push(bottle)
+    bottlesMap.set(bottle.customerId, list)
+  }
 
   return {
     favorites,

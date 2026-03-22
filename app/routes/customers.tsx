@@ -1,6 +1,6 @@
 import type { Route } from '../+types/routes/customers'
 import { getDb } from '../lib/db.server'
-import { getCustomers, getBottlesByCustomer, getCasts } from '../../src/lib/kv.server'
+import { getCustomers, getBottles, getCasts } from '../../src/lib/kv.server'
 import { getHiraganaGroup, hiraganaGroups } from '../../src/lib/utils'
 import { CustomerCard } from '../../src/components/customer-card'
 import { Fab } from '../../src/components/fab'
@@ -8,38 +8,32 @@ import { CustomerSearch } from '../../src/app/customers/customer-search'
 import type { Bottle, Cast } from '../../src/types'
 
 export async function loader({ context }: Route.LoaderArgs) {
-  try {
-    const db = getDb(context)
-    const [customers, casts] = await Promise.all([getCustomers(db), getCasts(db)])
-    const castMap = new Map<string, Cast>(casts.map((c) => [c.id, c]))
+  const db = getDb(context)
+  const [customers, casts, allBottles] = await Promise.all([getCustomers(db), getCasts(db), getBottles(db)])
+  const castMap = new Map<string, Cast>(casts.map((c) => [c.id, c]))
 
-    const bottlesMap = new Map<string, Bottle[]>()
-    await Promise.all(
-      customers.map(async (c) => {
-        const bottles = await getBottlesByCustomer(db, c.id)
-        bottlesMap.set(c.id, bottles)
-      })
-    )
+  const bottlesMap = new Map<string, Bottle[]>()
+  for (const bottle of allBottles) {
+    const list = bottlesMap.get(bottle.customerId) ?? []
+    list.push(bottle)
+    bottlesMap.set(bottle.customerId, list)
+  }
 
-    const grouped = new Map<string, typeof customers>()
-    for (const group of hiraganaGroups) {
-      const inGroup = customers.filter((c) => getHiraganaGroup(c.ruby) === group)
-      if (inGroup.length > 0) grouped.set(group, inGroup)
-    }
+  const grouped = new Map<string, typeof customers>()
+  for (const group of hiraganaGroups) {
+    const inGroup = customers.filter((c) => getHiraganaGroup(c.ruby) === group)
+    if (inGroup.length > 0) grouped.set(group, inGroup)
+  }
 
-    const activeGroups = Array.from(grouped.keys())
+  const activeGroups = Array.from(grouped.keys())
 
-    return {
-      customers,
-      casts,
-      castMap: Object.fromEntries(castMap),
-      bottlesMap: Object.fromEntries(bottlesMap),
-      grouped: Object.fromEntries(grouped),
-      activeGroups,
-    }
-  } catch (e) {
-    console.error("customers loader error:", String(e), (e as Error)?.stack)
-    throw e
+  return {
+    customers,
+    casts,
+    castMap: Object.fromEntries(castMap),
+    bottlesMap: Object.fromEntries(bottlesMap),
+    grouped: Object.fromEntries(grouped),
+    activeGroups,
   }
 }
 
