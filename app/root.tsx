@@ -1,4 +1,4 @@
-import { Links, Meta, Outlet, Scripts, ScrollRestoration, useNavigate } from 'react-router'
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, useNavigate, useRouteError, isRouteErrorResponse } from 'react-router'
 import type { Route } from './+types/root'
 import { RouterProvider } from '@heroui/react'
 import { Nav } from '../src/components/nav'
@@ -81,6 +81,24 @@ export default function App({ loaderData }: Route.ComponentProps) {
           <ScrollRestoration />
           <Scripts />
         </RouterProvider>
+      </body>
+    </html>
+  )
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError()
+  const message = isRouteErrorResponse(error)
+    ? `${error.status} ${error.statusText}: ${JSON.stringify(error.data)}`
+    : error instanceof Error
+    ? `${error.message}\n${error.stack}`
+    : JSON.stringify(error)
+  return (
+    <html lang="ja">
+      <head><title>Error</title></head>
+      <body style={{ fontFamily: 'monospace', padding: '20px', whiteSpace: 'pre-wrap' }}>
+        <h2>Debug Error</h2>
+        {message}
       </body>
     </html>
   )
