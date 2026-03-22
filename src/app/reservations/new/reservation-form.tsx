@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useFetcher, useNavigate } from 'react-router'
+import { DatePicker, TimeField } from '@heroui/react'
+import { CalendarDate, Time, parseDate } from '@internationalized/date'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -94,6 +96,11 @@ function CastMultiPicker({
   )
 }
 
+function todayCalendarDate(): CalendarDate {
+  const d = new Date()
+  return new CalendarDate(d.getFullYear(), d.getMonth() + 1, d.getDate())
+}
+
 export function ReservationForm({ customers, casts, bottlesByCustomer }: ReservationFormProps) {
   const fetcher = useFetcher()
   const navigate = useNavigate()
@@ -102,28 +109,27 @@ export function ReservationForm({ customers, casts, bottlesByCustomer }: Reserva
   const [showRegisterPrompt, setShowRegisterPrompt] = useState(false)
   const [savedDate, setSavedDate] = useState('')
 
-  const today = new Date().toISOString().split('T')[0]
-  const [date, setDate] = useState(today)
-  const [time, setTime] = useState('20:00')
+  const [dateValue, setDateValue] = useState<CalendarDate | null>(todayCalendarDate())
+  const [timeValue, setTimeValue] = useState<Time | null>(new Time(20, 0))
   const [partySize, setPartySize] = useState(2)
-  const [hasDesignation, setHasDesignation] = useState(false)
-  const [designatedCastIds, setDesignatedCastIds] = useState<string[]>([])
-  const [isAccompanied, setIsAccompanied] = useState(false)
-  const [accompaniedCastIds, setAccompaniedCastIds] = useState<string[]>([])
   const [customerType, setCustomerType] = useState<'existing' | 'new'>('new')
   const [guestName, setGuestName] = useState('')
   const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([])
   const [customerQuery, setCustomerQuery] = useState('')
+  const [phone, setPhone] = useState('')
+  const [hasDesignation, setHasDesignation] = useState(false)
+  const [designatedCastIds, setDesignatedCastIds] = useState<string[]>([])
+  const [isAccompanied, setIsAccompanied] = useState(false)
+  const [accompaniedCastIds, setAccompaniedCastIds] = useState<string[]>([])
   const [priceType, setPriceType] = useState<'normal' | 'party'>('normal')
   const [partyPlanPrice, setPartyPlanPrice] = useState<string>('')
   const [partyPlanMinutes, setPartyPlanMinutes] = useState<string>('90')
-  const [phone, setPhone] = useState('')
   const [memo, setMemo] = useState('')
 
   useEffect(() => {
     if (fetcher.state === 'idle' && fetcher.data?.success) {
       if (customerType === 'new') {
-        setSavedDate(date)
+        setSavedDate(dateString())
         setShowRegisterPrompt(true)
       } else {
         navigate('/reservations')
@@ -134,6 +140,16 @@ export function ReservationForm({ customers, casts, bottlesByCustomer }: Reserva
       setLoading(false)
     }
   }, [fetcher.state, fetcher.data])
+
+  function dateString(): string {
+    if (!dateValue) return ''
+    return `${dateValue.year}-${String(dateValue.month).padStart(2, '0')}-${String(dateValue.day).padStart(2, '0')}`
+  }
+
+  function timeString(): string {
+    if (!timeValue) return ''
+    return `${String(timeValue.hour).padStart(2, '0')}:${String(timeValue.minute).padStart(2, '0')}`
+  }
 
   const filteredCustomers = customerQuery.trim()
     ? customers.filter(
@@ -173,6 +189,8 @@ export function ReservationForm({ customers, casts, bottlesByCustomer }: Reserva
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!dateValue) { setError('日付を選択してください'); return }
+    if (!timeValue) { setError('時間を入力してください'); return }
     if (hasDesignation && designatedCastIds.length === 0) {
       setError('指名キャストを1名以上選択してください')
       return
@@ -185,8 +203,8 @@ export function ReservationForm({ customers, casts, bottlesByCustomer }: Reserva
     setError('')
     fetcher.submit(
       {
-        date,
-        time,
+        date: dateString(),
+        time: timeString(),
         partySize,
         hasDesignation,
         designatedCastIds: hasDesignation ? designatedCastIds : [],
@@ -247,95 +265,34 @@ export function ReservationForm({ customers, casts, bottlesByCustomer }: Reserva
       )}
 
       {/* 日付 */}
-      <div className="space-y-1.5">
-        <Label className="text-brand-plum">日付<span className="text-brand-coral ml-0.5">*</span></Label>
-        <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-      </div>
-
-      {/* 連絡先（電話番号） */}
-      <div className="space-y-1.5">
-        <Label className="text-brand-plum">連絡先（電話番号）</Label>
-        <Input
-          type="tel"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          placeholder="例：090-1234-5678"
-        />
-      </div>
+      <DatePicker
+        label="日付"
+        isRequired
+        value={dateValue}
+        onChange={setDateValue}
+        className="w-full"
+        classNames={{
+          label: 'text-brand-plum font-medium',
+          inputWrapper: 'border border-brand-beige bg-white shadow-none hover:border-brand-plum/40 focus-within:border-brand-plum/60',
+          input: 'text-brand-plum',
+        }}
+      />
 
       {/* 時間 */}
-      <div className="space-y-1.5">
-        <Label className="text-brand-plum">時間<span className="text-brand-coral ml-0.5">*</span></Label>
-        <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} required />
-      </div>
+      <TimeField
+        label="時間"
+        isRequired
+        value={timeValue}
+        onChange={setTimeValue}
+        className="w-full"
+        classNames={{
+          label: 'text-brand-plum font-medium',
+          inputWrapper: 'border border-brand-beige bg-white shadow-none hover:border-brand-plum/40 focus-within:border-brand-plum/60',
+          input: 'text-brand-plum',
+        }}
+      />
 
-      {/* 人数 */}
-      <div className="space-y-1.5">
-        <Label className="text-brand-plum">人数<span className="text-brand-coral ml-0.5">*</span></Label>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setPartySize((n) => Math.max(1, n - 1))}
-            className="w-9 h-9 rounded-lg border border-brand-beige bg-white text-brand-plum text-lg font-bold hover:bg-brand-beige/50 transition-colors"
-          >−</button>
-          <span className="text-xl font-bold text-brand-plum w-12 text-center tabular-nums">{partySize}</span>
-          <button
-            type="button"
-            onClick={() => setPartySize((n) => n + 1)}
-            className="w-9 h-9 rounded-lg border border-brand-beige bg-white text-brand-plum text-lg font-bold hover:bg-brand-beige/50 transition-colors"
-          >＋</button>
-          <span className="text-sm text-brand-plum/60">名</span>
-        </div>
-      </div>
-
-      {/* 指名 */}
-      <div className="space-y-2">
-        <div className="rounded-lg border border-brand-beige bg-white p-3">
-          <Toggle
-            value={hasDesignation}
-            onChange={(v) => { setHasDesignation(v); if (!v) setDesignatedCastIds([]) }}
-            label="指名なし"
-            activeLabel="指名あり"
-          />
-        </div>
-        {hasDesignation && (
-          <CastMultiPicker
-            casts={casts}
-            selectedIds={designatedCastIds}
-            onChange={setDesignatedCastIds}
-            label="指名キャストを選択（複数可）"
-            required
-          />
-        )}
-      </div>
-
-      {/* 同伴 */}
-      <div className="space-y-2">
-        <Label className="text-brand-plum">来店種別</Label>
-        <select
-          value={isAccompanied ? 'accompanied' : 'normal'}
-          onChange={(e) => {
-            const v = e.target.value === 'accompanied'
-            setIsAccompanied(v)
-            if (!v) setAccompaniedCastIds([])
-          }}
-          className="w-full rounded-lg border border-brand-beige bg-white px-3 py-2.5 text-sm text-brand-plum outline-none focus:ring-2 focus:ring-brand-plum/30"
-        >
-          <option value="normal">通常来店</option>
-          <option value="accompanied">同伴</option>
-        </select>
-        {isAccompanied && (
-          <CastMultiPicker
-            casts={casts}
-            selectedIds={accompaniedCastIds}
-            onChange={setAccompaniedCastIds}
-            label="同伴キャストを選択（複数可）"
-            required
-          />
-        )}
-      </div>
-
-      {/* 顧客か初来店か */}
+      {/* 来店区分 */}
       <div className="space-y-1.5">
         <Label className="text-brand-plum">来店区分</Label>
         <div className="flex rounded-lg border border-brand-beige overflow-hidden text-sm font-medium">
@@ -420,6 +377,83 @@ export function ReservationForm({ customers, casts, bottlesByCustomer }: Reserva
               })}
             </div>
           </div>
+        )}
+      </div>
+
+      {/* 連絡先（電話番号） */}
+      <div className="space-y-1.5">
+        <Label className="text-brand-plum">連絡先（電話番号）</Label>
+        <Input
+          type="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="例：090-1234-5678"
+        />
+      </div>
+
+      {/* 人数 */}
+      <div className="space-y-1.5">
+        <Label className="text-brand-plum">人数<span className="text-brand-coral ml-0.5">*</span></Label>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setPartySize((n) => Math.max(1, n - 1))}
+            className="w-9 h-9 rounded-lg border border-brand-beige bg-white text-brand-plum text-lg font-bold hover:bg-brand-beige/50 transition-colors"
+          >−</button>
+          <span className="text-xl font-bold text-brand-plum w-12 text-center tabular-nums">{partySize}</span>
+          <button
+            type="button"
+            onClick={() => setPartySize((n) => n + 1)}
+            className="w-9 h-9 rounded-lg border border-brand-beige bg-white text-brand-plum text-lg font-bold hover:bg-brand-beige/50 transition-colors"
+          >＋</button>
+          <span className="text-sm text-brand-plum/60">名</span>
+        </div>
+      </div>
+
+      {/* 指名 */}
+      <div className="space-y-2">
+        <div className="rounded-lg border border-brand-beige bg-white p-3">
+          <Toggle
+            value={hasDesignation}
+            onChange={(v) => { setHasDesignation(v); if (!v) setDesignatedCastIds([]) }}
+            label="指名なし"
+            activeLabel="指名あり"
+          />
+        </div>
+        {hasDesignation && (
+          <CastMultiPicker
+            casts={casts}
+            selectedIds={designatedCastIds}
+            onChange={setDesignatedCastIds}
+            label="指名キャストを選択（複数可）"
+            required
+          />
+        )}
+      </div>
+
+      {/* 来店種別（同伴） */}
+      <div className="space-y-2">
+        <Label className="text-brand-plum">来店種別</Label>
+        <select
+          value={isAccompanied ? 'accompanied' : 'normal'}
+          onChange={(e) => {
+            const v = e.target.value === 'accompanied'
+            setIsAccompanied(v)
+            if (!v) setAccompaniedCastIds([])
+          }}
+          className="w-full rounded-lg border border-brand-beige bg-white px-3 py-2.5 text-sm text-brand-plum outline-none focus:ring-2 focus:ring-brand-plum/30"
+        >
+          <option value="normal">通常来店</option>
+          <option value="accompanied">同伴</option>
+        </select>
+        {isAccompanied && (
+          <CastMultiPicker
+            casts={casts}
+            selectedIds={accompaniedCastIds}
+            onChange={setAccompaniedCastIds}
+            label="同伴キャストを選択（複数可）"
+            required
+          />
         )}
       </div>
 
