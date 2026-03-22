@@ -81,11 +81,7 @@ const handler = createPagesFunctionHandler({
   getLoadContext: (context) => {
     console.log("getLoadContext called")
     const env = context.env as Record<string, string | undefined>
-    const supabase =
-      env.SUPABASE_URL && env.SUPABASE_ANON_KEY
-        ? makeDbClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY)
-        : null
-    return { cloudflare: env, supabase }
+    return { cloudflare: env, supabase: null }
   },
 })
 
@@ -104,6 +100,6 @@ export const onRequest: any = async (ctx: any) => {
     return res
   } catch (e) {
     console.error("onRequest error:", String(e), (e as Error)?.stack)
-    return new Response(`Worker error: ${String(e)}`, { status: 200 })
+    return new Response(`Worker error: ${String(e)}`, { status: 200, headers: { 'content-type': 'text/plain' } })
   }
 }
